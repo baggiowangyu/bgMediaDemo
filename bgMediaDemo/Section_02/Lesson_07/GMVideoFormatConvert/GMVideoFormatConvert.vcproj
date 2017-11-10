@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="GMAudioEncode"
-	ProjectGUID="{F105578A-CFC0-41F4-B712-B23E72E88EA5}"
-	RootNamespace="GMAudioEncode"
+	Name="GMVideoFormatConvert"
+	ProjectGUID="{0EB6BF40-E640-4829-9BDB-5CA299134EB6}"
+	RootNamespace="GMVideoFormatConvert"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -42,11 +42,10 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\..\ext\ffmpeg\include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;-D__STDC_CONSTANT_MACROS"
 				MinimalRebuild="true"
-				BasicRuntimeChecks="0"
+				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				BufferSecurityCheck="false"
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				DebugInformationFormat="4"
@@ -89,6 +88,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description=""
 				CommandLine="COPY $(SolutionDir)ext\ffmpeg\bin\x86\avcodec-57.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\avdevice-57.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\avfilter-6.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\avformat-57.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\avutil-55.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\postproc-54.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\swresample-2.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\swscale-4.dll $(OutDir)&#x0D;&#x0A;"
 			/>
 		</Configuration>
@@ -176,7 +176,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\GMAudioEncode.cpp"
+				RelativePath=".\GMVideoFormatConvert.cpp"
 				>
 			</File>
 			<File

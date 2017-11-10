@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="GMAudioEncode"
-	ProjectGUID="{F105578A-CFC0-41F4-B712-B23E72E88EA5}"
-	RootNamespace="GMAudioEncode"
+	Name="GMVideoCodecConvert"
+	ProjectGUID="{0F195D42-385C-47DF-87A8-2329115D4DE8}"
+	RootNamespace="GMVideoCodecConvert"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -44,9 +44,8 @@
 				AdditionalIncludeDirectories="..\..\..\ext\ffmpeg\include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
-				BasicRuntimeChecks="0"
+				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				BufferSecurityCheck="false"
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				DebugInformationFormat="4"
@@ -176,7 +175,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\GMAudioEncode.cpp"
+				RelativePath=".\GMVideoCodecConvert.cpp"
 				>
 			</File>
 			<File

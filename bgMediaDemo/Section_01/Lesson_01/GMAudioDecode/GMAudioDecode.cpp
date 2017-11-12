@@ -25,64 +25,64 @@ extern "C" {
 
 void ShowFormatInfo(AVFormatContext *input_format)
 {
-	std::cout<<"====================== Format Information ======================="<<std::endl;
-	std::cout<<"  Filename : "<<input_format->filename<<std::endl;
-	std::cout<<"  Duration : "<<(double)input_format->duration / AV_TIME_BASE <<std::endl;
-	std::cout<<"  Bit rate : "<<input_format->bit_rate<<std::endl;
-	std::cout<<"  Format name : "<<input_format->iformat->name<<std::endl;
-	std::cout<<"  Format long name : "<<input_format->iformat->long_name<<std::endl;
-	std::cout<<"  Format long name : "<<input_format->iformat->long_name<<std::endl;
-	std::cout<<"  Format raw codec id : "<<input_format->iformat->raw_codec_id<<std::endl;
+	printf("====================== Format Information =======================\n");
+	printf("  Filename : %s\n", input_format->filename);
+	printf("  Duration : %f\n", (double)input_format->duration / AV_TIME_BASE );
+	printf("  Bit rate : %d\n", input_format->bit_rate);
+	printf("  Format name : %s\n", input_format->iformat->name);
+	printf("  Format long name : %s\n", input_format->iformat->long_name);
+	printf("  Format long name : %s\n", input_format->iformat->long_name);
+	printf("  Format raw codec id : %d\n", input_format->iformat->raw_codec_id);
 }
 
 void ShowCodecContextInfo(AVCodecContext *codec_context)
 {
-	std::cout<<"====================== Codec Context Information ======================="<<std::endl;
-	std::cout<<"  Codec id : "<<codec_context->codec_id<<std::endl;
-	std::cout<<"  Codec name : "<<avcodec_get_name(codec_context->codec_id)<<std::endl;
-	std::cout<<"  Codec time_base : "<<av_q2d(codec_context->time_base)<<std::endl;
-	std::cout<<"  Codec color primaries : "<<av_color_primaries_name(codec_context->color_primaries)<<std::endl;
-	std::cout<<"  Codec color transfer characteristic : "<<av_color_transfer_name(codec_context->color_trc)<<std::endl;
-	std::cout<<"  Codec YUV colorspace : "<<av_color_space_name(codec_context->colorspace)<<std::endl;
-	std::cout<<"  Codec MPEG vs JPEG YUV range : "<<av_color_range_name(codec_context->color_range)<<std::endl;
-	std::cout<<"  Codec location of chroma samples : "<<av_chroma_location_name(codec_context->chroma_sample_location)<<std::endl;
+	printf("====================== Codec Context Information =======================");
+	printf("  Codec id : %d\n", codec_context->codec_id);
+	printf("  Codec name : %s\n", avcodec_get_name(codec_context->codec_id));
+	printf("  Codec time_base : %d\n", av_q2d(codec_context->time_base));
+	printf("  Codec color primaries : %s\n", av_color_primaries_name(codec_context->color_primaries));
+	printf("  Codec color transfer characteristic : %s\n", av_color_transfer_name(codec_context->color_trc));
+	printf("  Codec YUV colorspace : %s\n", av_color_space_name(codec_context->colorspace));
+	printf("  Codec MPEG vs JPEG YUV range : %s\n", av_color_range_name(codec_context->color_range));
+	printf("  Codec location of chroma samples : %s\n", av_chroma_location_name(codec_context->chroma_sample_location));
 
-	std::cout<<"  Codec sample rate : "<<codec_context->sample_rate<<std::endl;
-	std::cout<<"  Codec channels : "<<codec_context->channels<<std::endl;
-	std::cout<<"  Codec sample format : "<<av_get_sample_fmt_name(codec_context->sample_fmt)<<std::endl;
+	printf("  Codec sample rate : %d\n", codec_context->sample_rate);
+	printf("  Codec channels : %d\n", codec_context->channels);
+	printf("  Codec sample format : %s\n", av_get_sample_fmt_name(codec_context->sample_fmt));
 
-	std::cout<<"  Codec frame size : "<<codec_context->frame_size<<std::endl;
-	std::cout<<"  Codec frame number : "<<codec_context->frame_number<<std::endl;
+	printf("  Codec frame size : %d\n", codec_context->frame_size);
+	printf("  Codec frame number : %d\n", codec_context->frame_number);
 }
 
 void ShowPacketInfo(AVPacket *av_packet)
 {
-	std::cout<<"====================== Packet Information ======================="<<std::endl;
-	std::cout<<"  Packet pos in stream : "<<av_packet->pos<<std::endl;
-	std::cout<<"  Packet pts : "<<av_packet->pts<<std::endl;
-	std::cout<<"  Packet dts : "<<av_packet->dts<<std::endl;
-	std::cout<<"  Packet stream index : "<<av_packet->stream_index<<std::endl;
-	std::cout<<"  Packet data len : "<<av_packet->size<<std::endl;
+	printf("====================== Packet Information =======================");
+	printf("  Packet pos in stream : %d\n", av_packet->pos);
+	printf("  Packet pts : %d\n", av_packet->pts);
+	printf("  Packet dts : %d\n", av_packet->dts);
+	printf("  Packet stream index : %d\n", av_packet->stream_index);
+	printf("  Packet data len : %\n", av_packet->size);
 
 }
 
 void ShowFrameInfo(AVFrame *av_frame)
 {
-	std::cout<<"====================== Frame Information ======================="<<std::endl;
-	std::cout<<"  Frame pts : "<<av_frame->pts<<std::endl;
-	std::cout<<"  Frame pkt_dts : "<<av_frame->pkt_dts<<std::endl;
-	std::cout<<"  Frame width : "<<av_frame->width<<std::endl;
-	std::cout<<"  Frame height : "<<av_frame->height<<std::endl;
-	std::cout<<"  Frame number of audio samples : "<<av_frame->nb_samples<<std::endl;
-	std::cout<<"  Frame is key frame : "<<av_frame->key_frame<<std::endl;
-	std::cout<<"  Frame pic type : "<<av_get_picture_type_char(av_frame->pict_type)<<std::endl;
-	std::cout<<"  Frame picture number in bitstream order : "<<av_frame->coded_picture_number<<std::endl;
-	std::cout<<"  Frame picture number in display order : "<<av_frame->display_picture_number<<std::endl;
-	std::cout<<"  Frame quality (1-best, bigger worse) : "<<av_frame->quality<<std::endl;
-	std::cout<<"  Frame sample rate : "<<av_frame->sample_rate<<std::endl;
-	std::cout<<"  Frame channel layout : "<<av_frame->channel_layout<<std::endl;
-	std::cout<<"  Frame MPEG vs JPEG YUV range : "<<av_color_range_name(av_frame->color_range)<<std::endl;
-	std::cout<<"  Frame YUV colorspace : "<<av_color_space_name(av_frame->colorspace)<<std::endl;
+	printf("====================== Frame Information =======================");
+	printf("  Frame pts : "<<av_frame->pts);
+	printf("  Frame pkt_dts : "<<av_frame->pkt_dts);
+	printf("  Frame width : "<<av_frame->width);
+	printf("  Frame height : "<<av_frame->height);
+	printf("  Frame number of audio samples : "<<av_frame->nb_samples);
+	printf("  Frame is key frame : "<<av_frame->key_frame);
+	printf("  Frame pic type : "<<av_get_picture_type_char(av_frame->pict_type));
+	printf("  Frame picture number in bitstream order : "<<av_frame->coded_picture_number);
+	printf("  Frame picture number in display order : "<<av_frame->display_picture_number);
+	printf("  Frame quality (1-best, bigger worse) : "<<av_frame->quality);
+	printf("  Frame sample rate : "<<av_frame->sample_rate);
+	printf("  Frame channel layout : "<<av_frame->channel_layout);
+	printf("  Frame MPEG vs JPEG YUV range : "<<av_color_range_name(av_frame->color_range));
+	printf("  Frame YUV colorspace : "<<av_color_space_name(av_frame->colorspace));
 }
 
 
@@ -90,7 +90,7 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	if (argc < 2)
 	{
-		printf("GMAudioDecode.exe <audio_path> \n");
+		printf("GMAudioDecode.exe <audio_path> <audio_decode_path> \n");
 		return 0;
 	}
 
@@ -102,8 +102,18 @@ int _tmain(int argc, _TCHAR* argv[])
 	TCHAR audio_path[4096] = {0};
 	_tcscpy_s(audio_path, 4096, argv[1]);
 
-	// 打开音频文件
+	TCHAR audio_decode_path[4096] = {0};
+	_tcscpy_s(audio_decode_path, 4096, argv[2]);
+
 	USES_CONVERSION;
+	FILE *audio_output_file = fopen(T2A(audio_decode_path), "w");
+	if (audio_decode_path == NULL)
+	{
+		printf("open output file failed.\n");
+		return -1;
+	}
+
+	// 打开音频文件
 	AVFormatContext *format_context = NULL;
 	int errCode = avformat_open_input(&format_context, T2A(audio_path), NULL, NULL);
 	if (errCode != 0)
@@ -190,9 +200,12 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 
 		ShowFrameInfo(av_frame);
+
+		fwrite(av_frame->data, av_frame->linesize[0], 1, audio_output_file);
 	}
 
 	av_frame_free(&av_frame);
+	fclose(audio_output_file);
 
 	system("pause");
 	return 0;

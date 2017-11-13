@@ -41,10 +41,12 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				AdditionalIncludeDirectories="..\..\..\ext\ffmpeg\include;..\..\..\ext\SDL\include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;-D__STDC_CONSTANT_MACROS"
 				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				BasicRuntimeChecks="0"
+				RuntimeLibrary="1"
+				BufferSecurityCheck="false"
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				DebugInformationFormat="4"
@@ -60,7 +62,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="avcodec.lib avdevice.lib avfilter.lib avformat.lib avutil.lib postproc.lib swresample.lib swscale.lib SDL2.lib"
 				LinkIncremental="2"
+				AdditionalLibraryDirectories="..\..\..\ext\ffmpeg\lib\x86;..\..\..\ext\SDL\lib\x86"
+				EnableUAC="true"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -85,6 +90,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				CommandLine="COPY $(SolutionDir)ext\ffmpeg\bin\x86\avcodec-57.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\avdevice-57.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\avfilter-6.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\avformat-57.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\avutil-55.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\postproc-54.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\swresample-2.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\swscale-4.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\SDL2.dll $(OutDir)&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration

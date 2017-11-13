@@ -1,5 +1,6 @@
 // GMAudioDecode.cpp : 定义控制台应用程序的入口点。
 //
+// 这个程序，我们将音频文件或视频中的音频流解码后转换成PCM原始采样数据
 
 #include "stdafx.h"
 
@@ -16,11 +17,14 @@ extern "C" {
 #include "libavutil/rational.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/samplefmt.h"
+#include "libswresample/swresample.h"
 #ifdef __cplusplus
 };
 #endif
 
 #include <iostream>
+
+#define MAX_AUDIO_FRAME_SIZE 192000 // 1 second of 48khz 32bit audio
 
 
 void ShowFormatInfo(AVFormatContext *input_format)
@@ -69,26 +73,26 @@ void ShowPacketInfo(AVPacket *av_packet)
 void ShowFrameInfo(AVFrame *av_frame)
 {
 	printf("====================== Frame Information =======================");
-	printf("  Frame pts : "<<av_frame->pts);
-	printf("  Frame pkt_dts : "<<av_frame->pkt_dts);
-	printf("  Frame width : "<<av_frame->width);
-	printf("  Frame height : "<<av_frame->height);
-	printf("  Frame number of audio samples : "<<av_frame->nb_samples);
-	printf("  Frame is key frame : "<<av_frame->key_frame);
-	printf("  Frame pic type : "<<av_get_picture_type_char(av_frame->pict_type));
-	printf("  Frame picture number in bitstream order : "<<av_frame->coded_picture_number);
-	printf("  Frame picture number in display order : "<<av_frame->display_picture_number);
-	printf("  Frame quality (1-best, bigger worse) : "<<av_frame->quality);
-	printf("  Frame sample rate : "<<av_frame->sample_rate);
-	printf("  Frame channel layout : "<<av_frame->channel_layout);
-	printf("  Frame MPEG vs JPEG YUV range : "<<av_color_range_name(av_frame->color_range));
-	printf("  Frame YUV colorspace : "<<av_color_space_name(av_frame->colorspace));
+	printf("  Frame pts : %d\n", av_frame->pts);
+	printf("  Frame pkt_dts : %d\n", av_frame->pkt_dts);
+	printf("  Frame width : %d\n", av_frame->width);
+	printf("  Frame height : %d\n", av_frame->height);
+	printf("  Frame number of audio samples : %d\n", av_frame->nb_samples);
+	printf("  Frame is key frame : %d\n", av_frame->key_frame);
+	//printf("  Frame pic type : %s\n", av_get_picture_type_char(av_frame->pict_type));
+	printf("  Frame picture number in bitstream order : %d\n", av_frame->coded_picture_number);
+	printf("  Frame picture number in display order : %d\n", av_frame->display_picture_number);
+	printf("  Frame quality (1-best, bigger worse) : %d\n", av_frame->quality);
+	printf("  Frame sample rate : %d\n", av_frame->sample_rate);
+	printf("  Frame channel layout : %I64d\n", av_frame->channel_layout);
+	printf("  Frame MPEG vs JPEG YUV range : %s\n", av_color_range_name(av_frame->color_range));
+	printf("  Frame YUV colorspace : %s\n", av_color_space_name(av_frame->colorspace));
 }
 
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	if (argc < 2)
+	if (argc < 3)
 	{
 		printf("GMAudioDecode.exe <audio_path> <audio_decode_path> \n");
 		return 0;
@@ -167,6 +171,25 @@ int _tmain(int argc, _TCHAR* argv[])
 		return -5;
 	}
 
+	// 准备解码之前，先设定好PCM转参数
+	uint64_t output_channel_layout = AV_CH_LAYOUT_STEREO;
+	int output_frame_size = audio_codec_context->frame_size;	// AAC是1024；MP3是1152；
+	AVSampleFormat output_sample_format = AV_SAMPLE_FMT_S16;
+	int output_sample_rate = audio_codec_context->sample_rate;	// 44100
+	int output_channels = av_get_channel_layout_nb_channels(output_channel_layout);
+	int output_buffer_size = av_samples_get_buffer_size(NULL, output_channels, output_frame_size, output_sample_format, 1);
+
+	unsigned char *output_buffer = (unsigned char *)av_malloc(MAX_AUDIO_FRAME_SIZE * 2);
+
+	// 
+	int input_channel_layout = av_get_default_channel_layout(audio_codec_context->channels);
+
+	// 
+	SwrContext *audio_convert_context = swr_alloc();
+	audio_convert_context = swr_alloc_set_opts(audio_convert_context, output_channel_layout, output_sample_format, output_sample_rate,
+		input_channel_layout, audio_codec_context->sample_fmt, audio_codec_context->sample_rate, 0, NULL);
+	swr_init(audio_convert_context);
+
 	// 读取编码包，执行解码
 	AVPacket av_packet;
 	AVFrame *av_frame = av_frame_alloc();
@@ -201,11 +224,18 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		ShowFrameInfo(av_frame);
 
-		fwrite(av_frame->data, av_frame->linesize[0], 1, audio_output_file);
+		// 执行转换
+		swr_convert(audio_convert_context, &output_buffer, MAX_AUDIO_FRAME_SIZE, (const unsigned char **)av_frame->data, av_frame->nb_samples);
+
+		fwrite(output_buffer, 1, output_buffer_size, audio_output_file);
 	}
 
+	avcodec_close(audio_codec_context);
+	av_free(output_buffer);
+	swr_free(&audio_convert_context);
 	av_frame_free(&av_frame);
 	fclose(audio_output_file);
+	avformat_close_input(&format_context);
 
 	system("pause");
 	return 0;

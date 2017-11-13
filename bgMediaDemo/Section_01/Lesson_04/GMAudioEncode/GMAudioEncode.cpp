@@ -18,7 +18,7 @@ extern "C" {
 #include "libavutil/pixdesc.h"
 #include "libavutil/samplefmt.h"
 #include "libavutil/avstring.h"
-	#include "libswresample/swresample.h"
+#include "libswresample/swresample.h"
 #ifdef __cplusplus
 };
 #endif
@@ -29,7 +29,7 @@ extern "C" {
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	if (argc < 2)
+	if (argc < 3)
 	{
 		printf("GMAudioEncode.exe <audio_in_path> <audio_out_path> \n");
 		return 0;
@@ -37,14 +37,14 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	// 完成初始化注册
 	av_register_all();
-	avformat_network_init();
-	avcodec_register_all();
+	//avformat_network_init();
+	//avcodec_register_all();
 
 	TCHAR audio_in_path[4096] = {0};
 	_tcscpy_s(audio_in_path, 4096, argv[1]);
 
 	TCHAR audio_out_path[4096] = {0};
-	_tcscpy_s(audio_out_path, 4096, argv[1]);
+	_tcscpy_s(audio_out_path, 4096, argv[2]);
 
 	USES_CONVERSION;
 
@@ -53,11 +53,12 @@ int _tmain(int argc, _TCHAR* argv[])
 	// 打开要输出的音频文件
 	//
 	//////////////////////////////////////////////////////////////////////////
+	const char *p_audio_out_path = T2A(audio_out_path);
 	AVFormatContext *output_format_context = avformat_alloc_context();
-	AVOutputFormat *output_format = av_guess_format(NULL, T2A(audio_out_path), NULL);
+	AVOutputFormat *output_format = av_guess_format(NULL, p_audio_out_path, NULL);
 	output_format_context->oformat = output_format;
 
-	int errCode = avio_open(&output_format_context->pb, T2A(audio_out_path), AVIO_FLAG_READ_WRITE);
+	int errCode = avio_open(&output_format_context->pb, p_audio_out_path, AVIO_FLAG_READ_WRITE);
 	if (errCode < 0)
 	{
 		printf("Open output audio file failed...\n");
@@ -69,6 +70,41 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		printf("Create output audio stream failed...\n");
 		return -2;
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	//
+	// 根据输入文件，设置对应的输出文件上下文
+	//
+	//////////////////////////////////////////////////////////////////////////
+	AVCodecContext *output_codec_context = output_audio_stream->codec;
+	output_codec_context->codec_id = output_format->audio_codec;
+	output_codec_context->codec_type = AVMEDIA_TYPE_AUDIO;
+	output_codec_context->sample_fmt = AV_SAMPLE_FMT_S16;
+	output_codec_context->sample_rate = 44100;
+	output_codec_context->channel_layout = AV_CH_LAYOUT_STEREO;
+	output_codec_context->channels = av_get_channel_layout_nb_channels(output_codec_context->channel_layout);
+	output_codec_context->bit_rate = 64000;		// 这里的码率要固定死？
+
+	av_dump_format(output_format_context, 0, T2A(audio_out_path), 1);
+
+	//////////////////////////////////////////////////////////////////////////
+	//
+	// 准备好音频编码上下文
+	//
+	//////////////////////////////////////////////////////////////////////////
+	AVCodec *output_codec_encoder = avcodec_find_encoder(output_codec_context->codec_id);
+	if (output_codec_encoder == NULL)
+	{
+		printf("Can't find encoder.\n");
+		return -2;
+	}
+
+	errCode = avcodec_open2(output_codec_context, output_codec_encoder, NULL);
+	if (errCode < 0)
+	{
+		printf("Open encoder failed..\n");
+		return errCode;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -151,36 +187,9 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	//////////////////////////////////////////////////////////////////////////
 	//
-	// 根据输入文件，设置对应的输出文件上下文
+	//
 	//
 	//////////////////////////////////////////////////////////////////////////
-	AVCodecContext *output_codec_context = output_audio_stream->codec;
-	output_codec_context->codec_id = output_format->audio_codec;
-	output_codec_context->codec_type = AVMEDIA_TYPE_AUDIO;
-	output_codec_context->sample_fmt = AV_SAMPLE_FMT_S16;
-	output_codec_context->sample_rate = audio_codec_context->sample_rate;
-	output_codec_context->channel_layout = AV_CH_LAYOUT_STEREO;
-	output_codec_context->channels = av_get_channel_layout_nb_channels(output_codec_context->channel_layout);
-	output_codec_context->bit_rate = 64000;		// 这里的码率要固定死？
-
-	//////////////////////////////////////////////////////////////////////////
-	//
-	// 准备好音频编码上下文
-	//
-	//////////////////////////////////////////////////////////////////////////
-	AVCodec *output_codec_encoder = avcodec_find_encoder(output_codec_context->codec_id);
-	if (output_codec_encoder == NULL)
-	{
-		printf("Can't find encoder.\n");
-		return -2;
-	}
-
-	errCode = avcodec_open2(output_codec_context, output_codec_encoder, NULL);
-	if (errCode < 0)
-	{
-		printf("Open encoder failed..\n");
-		return errCode;
-	}
 
 	AVFrame *av_encode_frame = av_frame_alloc();
 	av_encode_frame->nb_samples = output_codec_context->frame_size;
@@ -233,8 +242,55 @@ int _tmain(int argc, _TCHAR* argv[])
 		errCode = avcodec_encode_audio2(output_codec_context, &encode_packet, av_encode_frame, &got_encode_frame);
 		if (errCode < 0)
 		{
+			printf("encode audio failed !");
+			return errCode;
+		}
+
+		if (got_encode_frame == 1)
+		{
+			encode_packet.stream_index = output_audio_stream->index;
+			errCode = av_write_frame(output_format_context, &encode_packet);
 		}
 	}
+
+	// 最后将编码后的数据刷入文件
+	if (output_format_context->streams[output_audio_stream->index]->codec->codec->capabilities & CODEC_CAP_DELAY)
+	{
+		int got_frame = 0;
+		AVPacket enc_pkt;
+		while (true)
+		{
+			enc_pkt.data = NULL;
+			enc_pkt.size = 0;
+
+			av_init_packet(&enc_pkt);
+			errCode = avcodec_encode_audio2(output_format_context->streams[output_audio_stream->index]->codec, &enc_pkt, NULL, &got_frame);
+			av_frame_free(NULL);
+
+			if (errCode < 0)
+				break;
+
+			if (!got_frame)
+			{
+				errCode = 0;
+				break;
+			}
+
+			errCode = av_write_frame(output_format_context, &enc_pkt);
+			if (errCode < 0)
+			{
+				break;
+			}
+		}
+	}
+
+	if (errCode < 0)
+	{
+		return errCode;
+	}
+
+	// 写文件尾
+	av_write_trailer(output_format_context);
 
 	avcodec_close(audio_codec_context);
 	av_free(output_buffer);
@@ -243,7 +299,6 @@ int _tmain(int argc, _TCHAR* argv[])
 	avformat_close_input(&format_context);
 
 	system("pause");
-
 	return 0;
 }
 

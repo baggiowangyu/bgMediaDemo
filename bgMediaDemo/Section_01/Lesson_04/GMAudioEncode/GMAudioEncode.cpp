@@ -80,11 +80,28 @@ int _tmain(int argc, _TCHAR* argv[])
 	AVCodecContext *output_codec_context = output_audio_stream->codec;
 	output_codec_context->codec_id = output_format->audio_codec;
 	output_codec_context->codec_type = AVMEDIA_TYPE_AUDIO;
+
+	// 采样格式，包含了采样位数，一般有8、16、24等，数值越大解析度越高，录制和回放的声音就越真实
 	output_codec_context->sample_fmt = AV_SAMPLE_FMT_S16;
+
+	// 采样率，即每秒收集声音的次数，每种编码支持什么采样率，可以在编码器的supported_samplerates数组中查询
+	// 8000 Hz - 电话所用采样率, 对于人的说话已经足够 
+	// 11025 Hz 
+	// 22050 Hz - 无线电广播所用采样率 
+	// 32000 Hz - miniDV 数码视频 camcorder、DAT (LP mode)所用采样率 
+　　// 44100 Hz - 音频 CD, 也常用于 MPEG-1 音频（VCD, SVCD, MP3）所用采样率 
+	// 47250 Hz - Nippon Columbia (Denon)开发的世界上第一个商用 PCM 录音机所用采样率 
+	// 48000 Hz - miniDV、数字电视、DVD、DAT、电影和专业音频所用的数字声音所用采样率 
+	// 50000 Hz - 二十世纪七十年代后期出现的 3M 和 Soundstream 开发的第一款商用数字录音机所用采样率 50,400 Hz - 三菱 X-80 数字录音机所用所用采样率 
+	// 96000 或者 192,000 Hz - DVD-Audio、一些 LPCM DVD 音轨、BD-ROM（蓝光盘）音轨、和 HD-DVD （高清晰度 DVD）音轨所用所用采样率 
+	// 2.8224 MHz - SACD、 索尼 和 飞利浦 联合开发的称为 Direct Stream Digital 的 1 位 sigma-delta modulation 过程所用采样率。
 	output_codec_context->sample_rate = 44100;
 	output_codec_context->channel_layout = AV_CH_LAYOUT_STEREO;
 	output_codec_context->channels = av_get_channel_layout_nb_channels(output_codec_context->channel_layout);
-	output_codec_context->bit_rate = 64000;		// 这里的码率要固定死？
+
+	// 码率，比特率
+	output_codec_context->bit_rate = 64000;
+	output_codec_context->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
 
 	av_dump_format(output_format_context, 0, T2A(audio_out_path), 1);
 
@@ -201,8 +218,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	avcodec_fill_audio_frame(av_encode_frame, output_codec_context->channels, output_codec_context->sample_fmt,
 		(const unsigned char *)encode_frame_buffer, encoder_buffer_size, 1);
 
-	AVPacket encode_packet;
-	av_new_packet(&encode_packet, encoder_buffer_size);
+	
 
 	// 写文件头
 	errCode = avformat_write_header(output_format_context, NULL);
@@ -215,6 +231,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	AVPacket av_packet;
 	AVFrame *av_decode_frame = av_frame_alloc();
 
+	int frame_index = 0;
 	bool is_print_info = false;
 	while (av_read_frame(format_context, &av_packet) == 0)
 	{
@@ -232,17 +249,19 @@ int _tmain(int argc, _TCHAR* argv[])
 			continue;
 
 		// 执行转换
-		swr_convert(audio_convert_context, &output_buffer, MAX_AUDIO_FRAME_SIZE, (const unsigned char **)av_decode_frame->data, av_decode_frame->nb_samples);
+		int len = swr_convert(audio_convert_context, &output_buffer, MAX_AUDIO_FRAME_SIZE, (const unsigned char **)av_decode_frame->data, av_decode_frame->nb_samples);
 
 		av_encode_frame->data[0] = output_buffer;
-		av_encode_frame->pts = av_decode_frame->pts;
+		av_encode_frame->pts = frame_index * 100;
 
+		AVPacket encode_packet;
+		av_new_packet(&encode_packet, encoder_buffer_size);
 		
 		int got_encode_frame = 0;
 		errCode = avcodec_encode_audio2(output_codec_context, &encode_packet, av_encode_frame, &got_encode_frame);
 		if (errCode < 0)
 		{
-			printf("encode audio failed !");
+			printf("encode audio failed !\n");
 			return errCode;
 		}
 
@@ -251,6 +270,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			encode_packet.stream_index = output_audio_stream->index;
 			errCode = av_write_frame(output_format_context, &encode_packet);
 		}
+
+		++frame_index;
 	}
 
 	// 最后将编码后的数据刷入文件

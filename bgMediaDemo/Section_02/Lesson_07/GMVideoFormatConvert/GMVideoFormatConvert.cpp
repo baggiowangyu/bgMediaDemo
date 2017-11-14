@@ -1,5 +1,6 @@
 // GMVideoFormatConvert.cpp : 定义控制台应用程序的入口点。
 //
+// 本范例将MP4文件转为AVI文件
 
 #include "stdafx.h"
 

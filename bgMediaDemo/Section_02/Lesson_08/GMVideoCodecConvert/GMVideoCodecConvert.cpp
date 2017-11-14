@@ -1,5 +1,6 @@
 // GMVideoCodecConvert.cpp : 定义控制台应用程序的入口点。
 //
+// 本范例将H264-MP4文件重编码为H265-MP4文件
 
 #include "stdafx.h"
 

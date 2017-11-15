@@ -41,10 +41,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="..\..\..\ext\ffmpeg\2.8\include;..\..\..\ext\SDL\include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				DebugInformationFormat="4"
@@ -60,7 +61,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="avcodec.lib avdevice.lib avfilter.lib avformat.lib avutil.lib postproc.lib swresample.lib swscale.lib SDL_ttf.lib SDL2.lib SDL2_image.lib"
 				LinkIncremental="2"
+				AdditionalLibraryDirectories="..\..\..\ext\ffmpeg\2.8\lib\x86;..\..\..\ext\SDL\lib\x86"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -85,6 +88,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				CommandLine="COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avcodec-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avdevice-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avfilter-5.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avformat-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avutil-54.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\postproc-53.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\swresample-1.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\swscale-3.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libfreetype-6.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libjpeg-9.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libpng16-16.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libtiff-5.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libwebp-4.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\SDL_ttf.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\SDL2.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\SDL2_image.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\zlib1.dll $(OutDir)"
 			/>
 		</Configuration>
 		<Configuration

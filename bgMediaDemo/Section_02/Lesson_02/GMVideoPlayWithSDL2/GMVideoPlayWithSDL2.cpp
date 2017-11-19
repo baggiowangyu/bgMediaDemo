@@ -1,6 +1,14 @@
 // GMVideoPlayWithSDL2.cpp : 定义控制台应用程序的入口点。
 //
 // 本范例用于解码播放视频文件中的视频流
+//
+// 关于SDL2播放视频的操作说明：
+// 1. 初始化SDL2
+// 2. 创建渲染器
+// 3. 创建纹理
+// 4. 解码视频
+// 5. 图像转换
+// 6. 渲染显示
 
 #include "stdafx.h"
 
@@ -24,12 +32,23 @@ extern "C" {
 };
 #endif
 
+#include "SDL.h"
 #include <iostream>
 
 
+HANDLE event_handle = NULL;
+DWORD WINAPI video_play_control(LPVOID lpParam)
+{
+	while (true)
+	{
+		SetEvent(event_handle);
+		Sleep(20);		// 这里由帧率来控制
+	}
+}
+
 int _tmain(int argc, _TCHAR* argv[])
 {
-	if (argc < 4)
+	if (argc < 2)
 	{
 		printf("GMVideoPlayWithSDL2.exe <video_in_path>\n");
 		return 0;
@@ -114,10 +133,10 @@ int _tmain(int argc, _TCHAR* argv[])
 	// 前面视频解码的东西都准备好了，这里准备SDL的东西
 	//
 	//////////////////////////////////////////////////////////////////////////
-	int source_width = input_video_codec_context->width;
-	int source_height = input_video_codec_context->height;
-	int screen_width = source_width;
-	int screen_height = source_height;
+	int source_width	= input_video_codec_context->width;
+	int source_height	= input_video_codec_context->height;
+	int screen_width	= source_width;
+	int screen_height	= source_height;
 
 	errCode = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER);
 	if (errCode != 0)
@@ -144,10 +163,21 @@ int _tmain(int argc, _TCHAR* argv[])
 		return -2;
 	}
 
+	event_handle = CreateEvent(NULL, FALSE, FALSE, NULL);
+	CreateThread(NULL, 0, video_play_control, NULL, 0, NULL);
+
+	SDL_Rect rect;
+	rect.x = 0;
+	rect.y = 0;
+	rect.w = screen_width;
+	rect.h = screen_height;
+
 
 	AVPacket av_packet;
 	while (true)
 	{
+		WaitForSingleObject(event_handle, INFINITE);
+
 		errCode = av_read_frame(input_format_context, &av_packet);
 		if (errCode < 0)
 			break;
@@ -171,8 +201,13 @@ int _tmain(int argc, _TCHAR* argv[])
 				continue;
 			}
 
+			// 图像格式转换
 			sws_scale(image_convert_context, (const unsigned char* const*)av_frame->data, av_frame->linesize, 0,
 				input_video_codec_context->height, video_frame_yuv->data, video_frame_yuv->linesize);
+
+			SDL_UpdateTexture(sdl_texture_, NULL, video_frame_yuv->data[0], video_frame_yuv->linesize[0]);
+			SDL_RenderCopy(sdl_renderer_, sdl_texture_, NULL, &rect);
+			SDL_RenderPresent(sdl_renderer_);
 		}
 
 		av_frame_free(&av_frame);

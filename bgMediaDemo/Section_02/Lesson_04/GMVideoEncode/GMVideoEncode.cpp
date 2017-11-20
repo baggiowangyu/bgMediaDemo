@@ -130,7 +130,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	//mp4_video_codec_context->framerate		= flv_video_codec_context->framerate;
 	mp4_video_codec_context->gop_size		= flv_video_codec_context->gop_size;
 	mp4_video_codec_context->max_b_frames	= flv_video_codec_context->max_b_frames;
-	mp4_video_codec_context->pix_fmt		= AV_PIX_FMT_YUV420P;
+	mp4_video_codec_context->pix_fmt		= flv_video_codec_context->pix_fmt;//AV_PIX_FMT_YUV420P;
 
 	if (mp4_output_format->video_codec == AV_CODEC_ID_H264)
 		av_opt_set(mp4_video_codec_context->priv_data, "preset", "slow", 0);
@@ -154,9 +154,12 @@ int _tmain(int argc, _TCHAR* argv[])
 		return errCode;
 	}
 
+	int video_frame_yuv_buffer_size = av_image_get_buffer_size(mp4_video_codec_context->pix_fmt, mp4_video_codec_context->width, mp4_video_codec_context->height, 1);
+
 	//////////////////////////////////////////////////////////////////////////
 	//
-	// 开始解码
+	// 开始解码，并重编码
+	// 经过几轮测试，基本可以确认，这里的转码依然要通过图像转换的方式进行
 	//
 	//////////////////////////////////////////////////////////////////////////
 	AVPacket av_packet;
@@ -180,7 +183,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		// 这里要给这个packet分配编码内存
 		AVPacket encoded_packet;
-		
+		av_new_packet(&encoded_packet, video_frame_yuv_buffer_size);
 		int got_encoded_pic = 0;
 		errCode = avcodec_encode_video2(mp4_video_codec_context, &encoded_packet, av_frame, &got_encoded_pic);
 		if (errCode < 0)
@@ -189,12 +192,16 @@ int _tmain(int argc, _TCHAR* argv[])
 		if (!got_encoded_pic)
 			continue;
 
-		errCode = av_write_frame(mp4_format_context, &encoded_packet);
+		errCode = av_write_frame(mp4_format_context, &av_packet);
 		if (errCode < 0)
 			printf("write frame to file failed...%d\n", errCode);
 
 		av_frame_free(&av_frame);
 	}
+
+	// 将编码上下文剩余的帧数据刷入
+
+	av_write_trailer(mp4_format_context);
 
 	avio_close(mp4_format_context->pb);
 	avformat_close_input(&flv_format_context);

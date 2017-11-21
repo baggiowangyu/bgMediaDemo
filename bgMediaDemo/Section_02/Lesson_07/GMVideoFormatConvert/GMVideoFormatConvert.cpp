@@ -1,6 +1,6 @@
 // GMVideoFormatConvert.cpp : 定义控制台应用程序的入口点。
 //
-// 本范例将MP4文件转为AVI文件
+// 本范例将flv文件转为MP4文件
 
 #include "stdafx.h"
 
@@ -17,6 +17,7 @@ extern "C" {
 #include "libpostproc/postprocess.h"
 #include "libswresample/swresample.h"
 #include "libswscale/swscale.h"
+#include "libavutil/error.h"
 #ifdef __cplusplus
 };
 #endif
@@ -64,7 +65,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	}
 
 	int stream_mapping_size = input_format_context->nb_streams;
-	int *stream_mapping = av_mallocz_array(stream_mapping_size, sizeof(*stream_mapping));
+	int *stream_mapping = (int*)av_mallocz_array(stream_mapping_size, sizeof(*stream_mapping));
 	if (!stream_mapping)
 	{
 		return -2;
@@ -92,35 +93,110 @@ int _tmain(int argc, _TCHAR* argv[])
 	//
 	//////////////////////////////////////////////////////////////////////////
 
-	int input_video_stream_index = -1;
-	AVStream *input_video_stream = NULL;
-	AVCodecContext *input_video_codec_context = NULL;
-
-	int input_audio_stream_index = -1;
-	AVStream *input_audio_stream = NULL;
-	AVCodecContext *input_audio_codec_context = NULL;
-
+	int stream_index = 0;
 	for (int index = 0; index < input_format_context->nb_streams; ++index)
 	{
-		if (input_format_context->streams[index]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+		AVStream *out_stream = NULL;
+		AVStream *in_stream = input_format_context->streams[index];
+		AVCodecParameters *in_codecpar = in_stream->codecpar;
+
+		if (in_codecpar->codec_type != AVMEDIA_TYPE_AUDIO &&
+			in_codecpar->codec_type != AVMEDIA_TYPE_VIDEO &&
+			in_codecpar->codec_type != AVMEDIA_TYPE_SUBTITLE)
 		{
-			input_video_stream_index	= index;
-			input_video_stream			= input_format_context->streams[index];
-			input_video_codec_context	= input_video_stream->codec;
+			stream_mapping[index] = -1;
+			continue;
 		}
-		else if (input_format_context->streams[index]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
+
+		stream_mapping[index] = stream_index++;
+
+		out_stream = avformat_new_stream(output_format_context, NULL);
+		if (!out_stream)
 		{
-			input_audio_stream_index	= index;
-			input_audio_stream			= input_format_context->streams[index];
-			input_audio_codec_context	= input_audio_stream->codec;
+			return -3;
 		}
+
+		errCode = avcodec_parameters_copy(out_stream->codecpar, in_codecpar);
+		if (errCode < 0)
+		{
+			return -4;
+		}
+
+		out_stream->codecpar->codec_tag = 0;
 	}
+
+	av_dump_format(output_format_context, 0, T2A(output_media), 1);
+
 
 	//////////////////////////////////////////////////////////////////////////
 	//
 	// 
 	//
 	//////////////////////////////////////////////////////////////////////////
+
+	if (!(output_format->flags & AVFMT_NOFILE))
+	{
+		errCode = avio_open(&output_format_context->pb, T2A(output_media), AVIO_FLAG_WRITE);
+		if (errCode < 0)
+		{
+			return errCode;
+		}
+	}
+
+	errCode = avformat_write_header(output_format_context, NULL);
+	if (errCode < 0)
+	{
+		return errCode;
+	}
+
+	AVPacket av_packet;
+	while (true)
+	{
+		AVStream *in_stream = NULL, *out_stream = NULL;
+
+		errCode = av_read_frame(input_format_context, &av_packet);
+		if (errCode < 0)
+			break;
+
+		in_stream = input_format_context->streams[av_packet.stream_index];
+		if (av_packet.stream_index >= stream_mapping_size || stream_mapping[av_packet.stream_index] < 0)
+		{
+			av_packet_unref(&av_packet);
+			continue;
+		}
+
+		//av_packet.stream_index = stream_mapping[av_packet.stream_index];
+		out_stream = output_format_context->streams[av_packet.stream_index];
+
+		av_packet.pts = av_rescale_q_rnd(av_packet.pts, in_stream->time_base, out_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+		av_packet.dts = av_rescale_q_rnd(av_packet.dts, in_stream->time_base, out_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+		av_packet.duration = av_rescale_q(av_packet.duration, in_stream->time_base, out_stream->time_base);
+		av_packet.pos = -1;
+
+		errCode = av_interleaved_write_frame(output_format_context, &av_packet);
+		if (errCode < 0)
+		{
+			break;
+		}
+
+		av_packet_unref(&av_packet);
+	}
+
+	av_write_trailer(output_format_context);
+
+	avformat_close_input(&input_format_context);
+
+	/* close output */
+	if (output_format_context && !(output_format->flags & AVFMT_NOFILE))
+		avio_closep(&output_format_context->pb);
+	avformat_free_context(output_format_context);
+
+	av_freep(&stream_mapping);
+
+	if (errCode < 0 && errCode != AVERROR_EOF) {
+		printf("Error occurred\n");
+		return 1;
+	}
 
 	return 0;
 }

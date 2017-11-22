@@ -145,10 +145,9 @@ int _tmain(int argc, _TCHAR* argv[])
 	//////////////////////////////////////////////////////////////////////////
 	AVFrame *video_frame_yuv = av_frame_alloc();
 
-	int video_frame_yuv_buffer_size = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, input_video_codec_context->width, input_video_codec_context->height, 1);
+	int video_frame_yuv_buffer_size = avpicture_get_size(AV_PIX_FMT_YUV420P, input_video_codec_context->width, input_video_codec_context->height);
 	unsigned char *video_frame_yuv_buffer = (unsigned char *)av_malloc(video_frame_yuv_buffer_size);
-	av_image_fill_arrays(video_frame_yuv->data, video_frame_yuv->linesize, video_frame_yuv_buffer, AV_PIX_FMT_YUV420P,
-		input_video_codec_context->width, input_video_codec_context->height, 1);
+	avpicture_fill((AVPicture *)video_frame_yuv, video_frame_yuv_buffer, AV_PIX_FMT_YUV420P, input_video_codec_context->width, input_video_codec_context->height);
 
 	struct SwsContext *image_convert_context = sws_getContext(input_video_codec_context->width, input_video_codec_context->height, input_video_codec_context->pix_fmt,
 		input_video_codec_context->width, input_video_codec_context->height, AV_PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL, NULL);
@@ -222,26 +221,28 @@ int _tmain(int argc, _TCHAR* argv[])
 				continue;
 			}
 
+			printf("完成视频帧解码。帧pts：%d\n", av_frame->pts);
+
 			sws_scale(image_convert_context, (const unsigned char* const*)av_frame->data, av_frame->linesize, 0,
 				input_video_codec_context->height, video_frame_yuv->data, video_frame_yuv->linesize);
 
-			//int y_size = input_video_codec_context->width * input_video_codec_context->height;
-			//fwrite(video_frame_yuv->data[0], 1, y_size, yuv_file_handle);		// Y
-			//fwrite(video_frame_yuv->data[1], 1, y_size / 4, yuv_file_handle);	// U
-			//fwrite(video_frame_yuv->data[2], 1, y_size / 4, yuv_file_handle);	// V
+			int y_size = input_video_codec_context->width * input_video_codec_context->height;
+			fwrite(video_frame_yuv->data[0], 1, y_size, yuv_file_handle);		// Y
+			fwrite(video_frame_yuv->data[1], 1, y_size / 4, yuv_file_handle);	// U
+			fwrite(video_frame_yuv->data[2], 1, y_size / 4, yuv_file_handle);	// V
 
-			// 一种新的yuv文件写入方式
-			// Y
-			for (int index = 0; index < av_frame->height; ++index)
-				fwrite(av_frame->data[0] + av_frame->linesize[0] * index, 1, av_frame->width, yuv_file_handle);
+			//// 一种新的yuv文件写入方式
+			//// Y
+			//for (int index = 0; index < av_frame->height; ++index)
+			//	fwrite(video_frame_yuv->data[0] + av_frame->linesize[0] * index, 1, av_frame->width, yuv_file_handle);
 
-			// U
-			for (int index = 0; index < av_frame->height / 2; ++index)
-				fwrite(av_frame->data[1] + av_frame->linesize[1] * index, 1, av_frame->width / 2, yuv_file_handle);
+			//// U
+			//for (int index = 0; index < av_frame->height / 2; ++index)
+			//	fwrite(video_frame_yuv->data[1] + av_frame->linesize[1] * index, 1, av_frame->width / 2, yuv_file_handle);
 
-			// V
-			for (int index = 0; index < av_frame->height / 2; ++index)
-				fwrite(av_frame->data[2] + av_frame->linesize[2] * index, 1, av_frame->width / 2, yuv_file_handle);
+			//// V
+			//for (int index = 0; index < av_frame->height / 2; ++index)
+			//	fwrite(video_frame_yuv->data[2] + av_frame->linesize[2] * index, 1, av_frame->width / 2, yuv_file_handle);
 		}
 		else if (av_packet.stream_index == input_audio_stream_index)
 		{
@@ -283,23 +284,23 @@ int _tmain(int argc, _TCHAR* argv[])
 		if (!got_pic)
 			break;
 
-		//int y_size = input_video_codec_context->width * input_video_codec_context->height;
-		//fwrite(video_frame_yuv->data[0], 1, y_size, yuv_file_handle);		// Y
-		//fwrite(video_frame_yuv->data[1], 1, y_size / 4, yuv_file_handle);	// U
-		//fwrite(video_frame_yuv->data[2], 1, y_size / 4, yuv_file_handle);	// V
+		int y_size = input_video_codec_context->width * input_video_codec_context->height;
+		fwrite(video_frame_yuv->data[0], 1, y_size, yuv_file_handle);		// Y
+		fwrite(video_frame_yuv->data[1], 1, y_size / 4, yuv_file_handle);	// U
+		fwrite(video_frame_yuv->data[2], 1, y_size / 4, yuv_file_handle);	// V
 
-		// 一种新的yuv文件写入方式
-		// Y
-		for (int index = 0; index < av_frame->height; ++index)
-			fwrite(av_frame->data[0] + av_frame->linesize[0] * index, 1, av_frame->width, yuv_file_handle);
+		//// 一种新的yuv文件写入方式
+		//// Y
+		//for (int index = 0; index < av_frame->height; ++index)
+		//	fwrite(video_frame_yuv->data[0] + av_frame->linesize[0] * index, 1, av_frame->width, yuv_file_handle);
 
-		// U
-		for (int index = 0; index < av_frame->height / 2; ++index)
-			fwrite(av_frame->data[1] + av_frame->linesize[1] * index, 1, av_frame->width / 2, yuv_file_handle);
+		//// U
+		//for (int index = 0; index < av_frame->height / 2; ++index)
+		//	fwrite(video_frame_yuv->data[1] + av_frame->linesize[1] * index, 1, av_frame->width / 2, yuv_file_handle);
 
-		// V
-		for (int index = 0; index < av_frame->height / 2; ++index)
-			fwrite(av_frame->data[2] + av_frame->linesize[2] * index, 1, av_frame->width / 2, yuv_file_handle);
+		//// V
+		//for (int index = 0; index < av_frame->height / 2; ++index)
+		//	fwrite(video_frame_yuv->data[2] + av_frame->linesize[2] * index, 1, av_frame->width / 2, yuv_file_handle);
 	}
 
 	sws_freeContext(image_convert_context);

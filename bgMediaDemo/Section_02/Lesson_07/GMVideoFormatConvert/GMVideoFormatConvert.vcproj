@@ -88,7 +88,6 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				Description=""
 				CommandLine="COPY $(SolutionDir)ext\ffmpeg\bin\x86\avcodec-57.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\avdevice-57.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\avfilter-6.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\avformat-57.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\avutil-55.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\postproc-54.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\swresample-2.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\bin\x86\swscale-4.dll $(OutDir)&#x0D;&#x0A;"
 			/>
 		</Configuration>

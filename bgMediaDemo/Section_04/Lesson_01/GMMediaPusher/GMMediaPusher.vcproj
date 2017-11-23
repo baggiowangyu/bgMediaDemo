@@ -2,11 +2,11 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="GMAudioCollection"
-	ProjectGUID="{E8881E0A-51A3-4C5C-9B36-18C6F3327FAE}"
-	RootNamespace="GMAudioCollection"
+	Name="GMMediaPusher"
+	ProjectGUID="{76C4FA1B-18AC-44C4-B2F5-8C93C4C91391}"
+	RootNamespace="GMMediaPusher"
 	Keyword="Win32Proj"
-	TargetFrameworkVersion="196613"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\..\ext\ffmpeg\include"
+				AdditionalIncludeDirectories="..\..\..\ext\ffmpeg\2.8\include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -88,7 +88,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avcodec-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avdevice-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avfilter-5.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avformat-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avutil-54.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\postproc-53.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\swresample-1.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\swscale-3.dll $(OutDir)"
+				CommandLine="COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avcodec-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avdevice-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avfilter-5.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avformat-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avutil-54.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\postproc-53.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\swresample-1.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\swscale-3.dll $(OutDir)&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -175,7 +175,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\GMAudioCollection.cpp"
+				RelativePath=".\GMMediaPusher.cpp"
 				>
 			</File>
 			<File

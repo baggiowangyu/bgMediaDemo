@@ -1,6 +1,7 @@
 // GMVideoFormatConvert.cpp : 定义控制台应用程序的入口点。
 //
-// 本范例将flv文件转为MP4文件
+// 格式转换：不改变视音频流的编码，只改变封装格式，即Remuxing
+// 
 
 #include "stdafx.h"
 

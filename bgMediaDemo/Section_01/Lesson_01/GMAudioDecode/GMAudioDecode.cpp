@@ -110,7 +110,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	_tcscpy_s(audio_decode_path, 4096, argv[2]);
 
 	USES_CONVERSION;
-	FILE *audio_output_file = fopen(T2A(audio_decode_path), "w");
+	FILE *audio_output_file = fopen(T2A(audio_decode_path), "wb");
 	if (audio_decode_path == NULL)
 	{
 		printf("open output file failed.\n");

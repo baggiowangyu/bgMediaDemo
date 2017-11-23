@@ -58,6 +58,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	_tcscpy_s(pcm_out_path, 4096, argv[3]);
 
 	USES_CONVERSION;
+
+	//////////////////////////////////////////////////////////////////////////
+	//
+	// 打开输入文件
+	//
+	//////////////////////////////////////////////////////////////////////////
+
 	AVFormatContext *input_format_context = NULL;
 	int errCode = avformat_open_input(&input_format_context, T2A(video_in_path), NULL, NULL);
 	if (errCode != 0)
@@ -99,15 +106,43 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	//////////////////////////////////////////////////////////////////////////
 	//
-	// 准备几种流的解码器
+	// 打开对应的解码文件
 	//
 	//////////////////////////////////////////////////////////////////////////
-	AVCodec *input_video_decoder = NULL;
-	AVCodec *input_audio_decoder = NULL;
-	if (input_video_codec_context >= 0)
+
+	FILE *yuv_file = NULL;
+	FILE *pcm_file = NULL;
+	
+	if (input_video_stream_index >= 0)
 	{
-		input_video_decoder = avcodec_find_decoder(input_video_codec_context->codec_id);
-		if (input_video_decoder == NULL)
+		yuv_file = fopen(T2A(yuv_out_path), "wb");
+		if (!yuv_file)
+		{
+			printf("Open yuv output file failed...\n");
+			return -2;
+		}
+	}
+	
+	if (input_audio_stream_index >= 0)
+	{
+		pcm_file = fopen(T2A(pcm_out_path), "wb");
+		if (!pcm_file)
+		{
+			printf("Open pcm output file failed...\n");
+			return -2;
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	//
+	// 找到视频解码器并打开
+	//
+	//////////////////////////////////////////////////////////////////////////
+	
+	if (input_video_stream_index >= 0)
+	{
+		AVCodec *input_video_decoder = avcodec_find_decoder(input_video_codec_context->codec_id);
+		if (!input_video_decoder)
 		{
 			printf("Not found video decoder...\n");
 			return -2;
@@ -116,15 +151,21 @@ int _tmain(int argc, _TCHAR* argv[])
 		errCode = avcodec_open2(input_video_codec_context, input_video_decoder, NULL);
 		if (errCode != 0)
 		{
-			printf("Open video decoder failed. %d\n", errCode);
+			printf("Open video decoder failed...%d\n", errCode);
 			return errCode;
 		}
 	}
-	
+
+	//////////////////////////////////////////////////////////////////////////
+	//
+	// 找到音频解码器并打开
+	//
+	//////////////////////////////////////////////////////////////////////////
+
 	if (input_audio_stream_index >= 0)
 	{
-		input_audio_decoder = avcodec_find_decoder(input_audio_codec_context->codec_id);
-		if (input_audio_decoder == NULL)
+		AVCodec *input_audio_decoder = avcodec_find_decoder(input_audio_codec_context->codec_id);
+		if (!input_audio_decoder)
 		{
 			printf("Not found audio decoder...\n");
 			return -2;
@@ -133,187 +174,108 @@ int _tmain(int argc, _TCHAR* argv[])
 		errCode = avcodec_open2(input_audio_codec_context, input_audio_decoder, NULL);
 		if (errCode != 0)
 		{
-			printf("Open audio decoder failed. %d\n", errCode);
+			printf("Open audio decoder failed...%d\n", errCode);
 			return errCode;
 		}
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	//
-	// 视频图像转换的前期操作，准备转换为YUV文件
+	// 准备视频图像转换的相关结构与数据，以及初始化
 	//
 	//////////////////////////////////////////////////////////////////////////
+
+	AVFrame *video_frame = av_frame_alloc();
 	AVFrame *video_frame_yuv = av_frame_alloc();
 
-	int video_frame_yuv_buffer_size = avpicture_get_size(AV_PIX_FMT_YUV420P, input_video_codec_context->width, input_video_codec_context->height);
-	unsigned char *video_frame_yuv_buffer = (unsigned char *)av_malloc(video_frame_yuv_buffer_size);
-	avpicture_fill((AVPicture *)video_frame_yuv, video_frame_yuv_buffer, AV_PIX_FMT_YUV420P, input_video_codec_context->width, input_video_codec_context->height);
+	int video_frame_buffer_size = av_image_get_buffer_size(AV_PIX_FMT_YUV420P, input_video_codec_context->width, input_video_codec_context->height, 1);
+	unsigned char *video_frame_buffer = (unsigned char *)av_malloc(video_frame_buffer_size);
 
-	struct SwsContext *image_convert_context = sws_getContext(input_video_codec_context->width, input_video_codec_context->height, input_video_codec_context->pix_fmt,
+	av_image_fill_arrays(video_frame_yuv->data, video_frame_yuv->linesize, video_frame_buffer,
+		AV_PIX_FMT_YUV420P, input_video_codec_context->width, input_video_codec_context->height, 1);
+
+	SwsContext *image_convert_context = sws_getContext(input_video_codec_context->width, input_video_codec_context->height, input_video_codec_context->pix_fmt,
 		input_video_codec_context->width, input_video_codec_context->height, AV_PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL, NULL);
-
+	
 	//////////////////////////////////////////////////////////////////////////
 	//
-	// 音频转换的前期操作，将音频转换为PCM文件
-	//
-	//////////////////////////////////////////////////////////////////////////
-	uint64_t pcm_channel_layout = AV_CH_LAYOUT_STEREO;
-	int pcm_frame_size = input_audio_codec_context->frame_size;	// AAC是1024；MP3是1152；
-	AVSampleFormat pcm_sample_format = AV_SAMPLE_FMT_S16;
-	int pcm_sample_rate = input_audio_codec_context->sample_rate;	// 44100
-	int pcm_channels = av_get_channel_layout_nb_channels(pcm_channel_layout);
-	int pcm_buffer_size = av_samples_get_buffer_size(NULL, pcm_channels, pcm_frame_size, pcm_sample_format, 1);
-
-	unsigned char *pcm_frame_buffer = (unsigned char *)av_malloc(MAX_AUDIO_FRAME_SIZE * 2);
-
-	// 
-	int input_audio_channel_layout = av_get_default_channel_layout(input_audio_codec_context->channels);
-
-	// 
-	SwrContext *audio_convert_context = swr_alloc();
-	audio_convert_context = swr_alloc_set_opts(audio_convert_context, pcm_channel_layout, pcm_sample_format, pcm_sample_rate,
-		input_audio_channel_layout, input_audio_codec_context->sample_fmt, input_audio_codec_context->sample_rate, 0, NULL);
-	swr_init(audio_convert_context);
-
-	//////////////////////////////////////////////////////////////////////////
-	//
-	// 读取编码包，解码，写入对应文件
+	// 准备音频图像转换的相关结构与数据，以及初始化
 	//
 	//////////////////////////////////////////////////////////////////////////
 
-	FILE *yuv_file_handle = fopen(T2A(yuv_out_path), "w");
-	if (yuv_file_handle == NULL)
+
+
+	//////////////////////////////////////////////////////////////////////////
+	//
+	// 读取媒体文件中的编码包
+	//
+	//////////////////////////////////////////////////////////////////////////
+	av_dump_format(input_format_context, 0, T2A(video_in_path), 0);
+
+	int got_data = 0;
+	AVPacket *av_packet = (AVPacket *)av_malloc(sizeof(AVPacket));
+	while (av_read_frame(input_format_context, av_packet) >= 0)
 	{
-		printf("Open \"%s\" failed...\n", T2A(yuv_out_path));
-		return -5;
-	}
-
-	FILE *pcm_file_handle = fopen(T2A(pcm_out_path), "w");
-	if (yuv_file_handle == NULL)
-	{
-		printf("Open \"%s\" failed...\n", T2A(pcm_out_path));
-		return -5;
-	}
-
-	AVPacket av_packet;
-	while (true)
-	{
-		errCode = av_read_frame(input_format_context, &av_packet);
-		if (errCode < 0)
-			break;
-
-		AVFrame *av_frame = av_frame_alloc();
-		if (av_packet.stream_index == input_video_stream_index)
+		if (av_packet->stream_index == input_video_stream_index)
 		{
-			// 视频数据，解码后转换图像格式，写入文件
-			int got_pic = 0;
-			errCode = avcodec_decode_video2(input_video_codec_context, av_frame, &got_pic, &av_packet);
+			errCode = avcodec_decode_video2(input_video_codec_context, video_frame, &got_data, av_packet);
 			if (errCode < 0)
 			{
 				printf("Decode video packet failed...%d\n", errCode);
-				av_frame_free(&av_frame);
 				return errCode;
 			}
 
-			if (!got_pic)
+			if (got_data)
 			{
-				av_frame_free(&av_frame);
-				continue;
+				sws_scale(image_convert_context, (const unsigned char * const *)video_frame->data, video_frame->linesize, 0, video_frame->height, video_frame_yuv->data, video_frame_yuv->linesize);
+
+				int y_size = input_video_codec_context->width * input_video_codec_context->height;
+				fwrite(video_frame_yuv->data[0], 1, y_size, yuv_file);
+				fwrite(video_frame_yuv->data[1], 1, y_size / 4, yuv_file);
+				fwrite(video_frame_yuv->data[2], 1, y_size / 4, yuv_file);
+
+				printf("Succeed to decode 1 frame!\n");
 			}
-
-			printf("完成视频帧解码。帧pts：%d\n", av_frame->pts);
-
-			sws_scale(image_convert_context, (const unsigned char* const*)av_frame->data, av_frame->linesize, 0,
-				input_video_codec_context->height, video_frame_yuv->data, video_frame_yuv->linesize);
-
-			int y_size = input_video_codec_context->width * input_video_codec_context->height;
-			fwrite(video_frame_yuv->data[0], 1, y_size, yuv_file_handle);		// Y
-			fwrite(video_frame_yuv->data[1], 1, y_size / 4, yuv_file_handle);	// U
-			fwrite(video_frame_yuv->data[2], 1, y_size / 4, yuv_file_handle);	// V
-
-			//// 一种新的yuv文件写入方式
-			//// Y
-			//for (int index = 0; index < av_frame->height; ++index)
-			//	fwrite(video_frame_yuv->data[0] + av_frame->linesize[0] * index, 1, av_frame->width, yuv_file_handle);
-
-			//// U
-			//for (int index = 0; index < av_frame->height / 2; ++index)
-			//	fwrite(video_frame_yuv->data[1] + av_frame->linesize[1] * index, 1, av_frame->width / 2, yuv_file_handle);
-
-			//// V
-			//for (int index = 0; index < av_frame->height / 2; ++index)
-			//	fwrite(video_frame_yuv->data[2] + av_frame->linesize[2] * index, 1, av_frame->width / 2, yuv_file_handle);
 		}
-		else if (av_packet.stream_index == input_audio_stream_index)
+		else if (av_packet->stream_index == input_audio_stream_index)
 		{
-			// 音频数据，解码后转换声音格式，写入文件
-			int got_frame_ptr = 0;
-			errCode = avcodec_decode_audio4(input_audio_codec_context, av_frame, &got_frame_ptr, &av_packet);
-			if (errCode < 0)
-			{
-				printf("Decode audio packet failed...%d\n", errCode);
-				av_frame_free(&av_frame);
-				return errCode;
-			}
-
-			if (!got_frame_ptr)
-			{
-				av_frame_free(&av_frame);
-				continue;
-			}
-
-			swr_convert(audio_convert_context, &pcm_frame_buffer, MAX_AUDIO_FRAME_SIZE, (const unsigned char **)av_frame->data, av_frame->nb_samples);
-
-			fwrite(pcm_frame_buffer, 1, pcm_buffer_size, pcm_file_handle);
 		}
 
-		av_frame_free(&av_frame);
+		av_free_packet(av_packet);
 	}
 
-	// 解码完毕之后，将Codec中剩下的帧刷入文件
+	//////////////////////////////////////////////////////////////////////////
+	//
+	// 刷新解码器中剩余的帧
+	//
+	//////////////////////////////////////////////////////////////////////////
+
 	while (true)
 	{
-		int got_pic = 0;
-		AVFrame *av_frame = av_frame_alloc();
-
-		errCode = avcodec_decode_video2(input_video_codec_context, av_frame, &got_pic, &av_packet);
-
+		errCode = avcodec_decode_video2(input_video_codec_context, video_frame, &got_data, av_packet);
 		if (errCode < 0)
 			break;
-		
-		if (!got_pic)
+
+		if (!got_data)
 			break;
 
+		sws_scale(image_convert_context, (const unsigned char * const *)video_frame->data, video_frame->linesize, 0, video_frame->height, video_frame_yuv->data, video_frame_yuv->linesize);
+
 		int y_size = input_video_codec_context->width * input_video_codec_context->height;
-		fwrite(video_frame_yuv->data[0], 1, y_size, yuv_file_handle);		// Y
-		fwrite(video_frame_yuv->data[1], 1, y_size / 4, yuv_file_handle);	// U
-		fwrite(video_frame_yuv->data[2], 1, y_size / 4, yuv_file_handle);	// V
+		fwrite(video_frame_yuv->data[0], 1, y_size, yuv_file);
+		fwrite(video_frame_yuv->data[1], 1, y_size / 4, yuv_file);
+		fwrite(video_frame_yuv->data[2], 1, y_size / 4, yuv_file);
 
-		//// 一种新的yuv文件写入方式
-		//// Y
-		//for (int index = 0; index < av_frame->height; ++index)
-		//	fwrite(video_frame_yuv->data[0] + av_frame->linesize[0] * index, 1, av_frame->width, yuv_file_handle);
-
-		//// U
-		//for (int index = 0; index < av_frame->height / 2; ++index)
-		//	fwrite(video_frame_yuv->data[1] + av_frame->linesize[1] * index, 1, av_frame->width / 2, yuv_file_handle);
-
-		//// V
-		//for (int index = 0; index < av_frame->height / 2; ++index)
-		//	fwrite(video_frame_yuv->data[2] + av_frame->linesize[2] * index, 1, av_frame->width / 2, yuv_file_handle);
+		printf("Flush Decoder: Succeed to decode 1 frame!\n");
 	}
 
 	sws_freeContext(image_convert_context);
-	swr_free(&audio_convert_context);
 
-	fclose(yuv_file_handle);
-	fclose(pcm_file_handle);
-	
+	fclose(yuv_file);
+
 	av_frame_free(&video_frame_yuv);
-	
+	av_frame_free(&video_frame);
 	avcodec_close(input_video_codec_context);
-	avcodec_close(input_audio_codec_context);
-
 	avformat_close_input(&input_format_context);
 
 	return 0;

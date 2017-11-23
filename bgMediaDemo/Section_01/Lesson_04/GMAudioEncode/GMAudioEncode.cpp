@@ -89,7 +89,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	// 11025 Hz 
 	// 22050 Hz - 无线电广播所用采样率 
 	// 32000 Hz - miniDV 数码视频 camcorder、DAT (LP mode)所用采样率 
-　　// 44100 Hz - 音频 CD, 也常用于 MPEG-1 音频（VCD, SVCD, MP3）所用采样率 
+	// 44100 Hz - 音频 CD, 也常用于 MPEG-1 音频（VCD, SVCD, MP3）所用采样率 
 	// 47250 Hz - Nippon Columbia (Denon)开发的世界上第一个商用 PCM 录音机所用采样率 
 	// 48000 Hz - miniDV、数字电视、DVD、DAT、电影和专业音频所用的数字声音所用采样率 
 	// 50000 Hz - 二十世纪七十年代后期出现的 3M 和 Soundstream 开发的第一款商用数字录音机所用采样率 50,400 Hz - 三菱 X-80 数字录音机所用所用采样率 
@@ -100,8 +100,8 @@ int _tmain(int argc, _TCHAR* argv[])
 	output_codec_context->channels = av_get_channel_layout_nb_channels(output_codec_context->channel_layout);
 
 	// 码率，比特率
-	output_codec_context->bit_rate = 64000;
-	output_codec_context->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
+	output_codec_context->bit_rate = 640000;
+	//output_codec_context->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
 
 	av_dump_format(output_format_context, 0, T2A(audio_out_path), 1);
 

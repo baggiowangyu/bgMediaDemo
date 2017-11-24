@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="GMVideoMux"
-	ProjectGUID="{C815E447-2BC3-4110-BA1E-2E18D05D030B}"
-	RootNamespace="GMVideoMux"
+	Name="GMVideoDemux"
+	ProjectGUID="{46BC3A55-6599-4CF9-8C21-26DC85EFA695}"
+	RootNamespace="GMVideoDemux"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -49,7 +49,6 @@
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				DebugInformationFormat="4"
-				EnablePREfast="true"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -176,7 +175,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\GMVideoMux.cpp"
+				RelativePath=".\GMVideoDemux.cpp"
 				>
 			</File>
 			<File

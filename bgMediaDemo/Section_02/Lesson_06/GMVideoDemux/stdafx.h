@@ -5,12 +5,10 @@
 
 #pragma once
 
-#define CRTDBG_MAP_ALLOC
 #include "targetver.h"
 
 #include <stdio.h>
 #include <tchar.h>
-#include <crtdbg.h>
 
 
 

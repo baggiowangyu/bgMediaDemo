@@ -1,6 +1,7 @@
 // GMVideoDemux.cpp : 定义控制台应用程序的入口点。
 //
 // 将输入的flv文件拆分成h264和aac
+// $(SolutionDir)Section_02\BOB.flv $(OutDir)\BOB.h264 $(OutDir)\BOB.mp3
 
 #include "stdafx.h"
 

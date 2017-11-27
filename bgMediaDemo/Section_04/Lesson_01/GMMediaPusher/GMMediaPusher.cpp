@@ -87,7 +87,12 @@ int _tmain(int argc, _TCHAR* argv[])
 	//
 	//////////////////////////////////////////////////////////////////////////
 
-	
+	AVFormatContext *output_format_context = NULL;
+	errCode = avformat_alloc_output_context2(&output_format_context, NULL, "flv", T2A(stream_server_url));
+	if (errCode < 0)
+	{
+		printf("push")
+	}
 
 	return 0;
 }

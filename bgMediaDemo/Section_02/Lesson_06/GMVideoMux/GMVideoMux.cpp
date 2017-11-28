@@ -126,6 +126,11 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 	}
 
+	// 没有时间戳，会导致后面的复用失败，这里想办法构造
+	if (input_video_format_context->duration == AV_NOPTS_VALUE)
+	{
+	}
+
 	int input_audio_stream_index = -1;
 	int output_audio_stream_index = -1;
 

@@ -99,64 +99,63 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	int input_video_stream_index = -1;
 	int output_video_stream_index = -1;
+	AVStream *input_video_stream = NULL;
+	AVStream *output_video_stream = NULL;
 
 	for (int index = 0; index < input_video_format_context->nb_streams; ++index)
 	{
 		if (input_video_format_context->streams[index]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
 		{
-			AVStream *in_stream = input_video_format_context->streams[index];
-			AVStream *out_stream = avformat_new_stream(output_format_context, in_stream->codec->codec);
+			input_video_stream = input_video_format_context->streams[index];
+			output_video_stream = avformat_new_stream(output_format_context, input_video_stream->codec->codec);
 
 			input_video_stream_index = index;
 
-			if (!out_stream)
+			if (!output_video_stream)
 				return AVERROR_UNKNOWN;
 
-			output_video_stream_index = out_stream->index;
+			output_video_stream_index = output_video_stream->index;
 
 			// 复制编码上下文
-			errCode = avcodec_copy_context(out_stream->codec, in_stream->codec);
+			errCode = avcodec_copy_context(output_video_stream->codec, input_video_stream->codec);
 			if (errCode < 0)
 				return errCode;
 
-			out_stream->codec->codec_tag = 0;
+			output_video_stream->codec->codec_tag = 0;
 
 			if (output_format_context->oformat->flags & AVFMT_GLOBALHEADER)
-				out_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+				output_video_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 		}
-	}
-
-	// 没有时间戳，会导致后面的复用失败，这里想办法构造
-	if (input_video_format_context->duration == AV_NOPTS_VALUE)
-	{
 	}
 
 	int input_audio_stream_index = -1;
 	int output_audio_stream_index = -1;
+	AVStream *input_audio_stream = NULL;
+	AVStream *output_audio_stream = NULL;
 
 	for (int index = 0; index < input_audio_format_context->nb_streams; ++index)
 	{
 		if (input_audio_format_context->streams[index]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
 		{
-			AVStream *in_stream = input_audio_format_context->streams[index];
-			AVStream *out_stream = avformat_new_stream(output_format_context, in_stream->codec->codec);
+			input_audio_stream = input_audio_format_context->streams[index];
+			output_audio_stream = avformat_new_stream(output_format_context, input_audio_stream->codec->codec);
 
 			input_audio_stream_index = index;
 
-			if (!out_stream)
+			if (!output_audio_stream)
 				return AVERROR_UNKNOWN;
 
-			output_audio_stream_index = out_stream->index;
+			output_audio_stream_index = output_audio_stream->index;
 
 			// 复制编码上下文
-			errCode = avcodec_copy_context(out_stream->codec, in_stream->codec);
+			errCode = avcodec_copy_context(output_audio_stream->codec, input_audio_stream->codec);
 			if (errCode < 0)
 				return errCode;
 
-			out_stream->codec->codec_tag = 0;
+			output_audio_stream->codec->codec_tag = 0;
 
 			if (output_format_context->oformat->flags & AVFMT_GLOBALHEADER)
-				out_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+				output_audio_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 		}
 	}
 
@@ -191,117 +190,65 @@ int _tmain(int argc, _TCHAR* argv[])
 	AVBitStreamFilterContext *aac_bit_stream_filter_context = av_bitstream_filter_init("aac_adtstoasc");
 #endif
 
-	AVPacket av_packet;
+	AVPacket av_video_packet;
+	AVPacket av_audio_packet;
 	int frame_index = 0;
-	while (true)
+
+	int video_frames = input_video_stream->nb_frames;
+	int audio_frames = input_audio_stream->nb_frames;
+
+	// 按照一个视频帧带五个音频帧的方式进行复用，尝试一下
+	for (int index = 0; index < video_frames; ++index)
 	{
-		AVFormatContext *ifmt_ctx = NULL;
-		int stream_index = -1;
-		AVStream *in_stream = NULL;
-		AVStream *out_stream = NULL;
-
-		// 读取一个编码包
-		int64_t cur_pts_v = 0;
-		int64_t cur_pts_a = 0;
-		errCode = av_compare_ts(cur_pts_v, input_video_format_context->streams[input_video_stream_index]->time_base,
-			cur_pts_a, input_audio_format_context->streams[input_audio_stream_index]->time_base);
-
-		if (errCode <= 0)
-		{
-			ifmt_ctx = input_video_format_context;
-			stream_index = input_video_stream_index;
-
-			errCode = av_read_frame(ifmt_ctx, &av_packet);
-			if (errCode < 0)
-				break;
-
-			do 
-			{
-				in_stream = ifmt_ctx->streams[av_packet.stream_index];
-				out_stream = output_format_context->streams[stream_index];
-
-				if (av_packet.stream_index == input_video_stream_index)
-				{
-					if (av_packet.pts == AV_NOPTS_VALUE)
-					{
-						// 写入pts
-						AVRational time_base = in_stream->time_base;
-
-						// 两个帧之间的耗时（单位：us）
-						int64_t calc_duration = (double)AV_TIME_BASE / av_q2d(in_stream->r_frame_rate);
-
-						// 剩余参数
-						av_packet.pts = (double)(frame_index * calc_duration) / (double)(av_q2d(time_base) * AV_TIME_BASE);
-						av_packet.dts = av_packet.pts;
-						av_packet.duration = (double)calc_duration / (double)(av_q2d(time_base) * AV_TIME_BASE);
-						++frame_index;
-					}
-
-					cur_pts_v = av_packet.pts;
-					break;
-				}
-
-			} while (av_read_frame(ifmt_ctx, &av_packet));
-		}
-		else
-		{
-			ifmt_ctx = input_audio_format_context;
-			stream_index = input_audio_stream_index;
-
-			errCode = av_read_frame(ifmt_ctx, &av_packet);
-			if (errCode < 0)
-				break;
-
-			do 
-			{
-				in_stream = ifmt_ctx->streams[av_packet.stream_index];
-				out_stream = output_format_context->streams[stream_index];
-
-				if (av_packet.stream_index == input_audio_stream_index)
-				{
-					if (av_packet.pts == AV_NOPTS_VALUE)
-					{
-						// 写入pts
-						AVRational time_base = in_stream->time_base;
-
-						// 两个帧之间的耗时（单位：us）
-						int64_t calc_duration = (double)AV_TIME_BASE / av_q2d(in_stream->r_frame_rate);
-
-						// 剩余参数
-						av_packet.pts = (double)(frame_index * calc_duration) / (double)(av_q2d(time_base) * AV_TIME_BASE);
-						av_packet.dts = av_packet.pts;
-						av_packet.duration = (double)calc_duration / (double)(av_q2d(time_base) * AV_TIME_BASE);
-						++frame_index;
-					}
-
-					cur_pts_a = av_packet.pts;
-					break;
-				}
-
-			} while(av_read_frame(ifmt_ctx, &av_packet));
-		}
-
-#ifdef USE_H264BSF
-		av_bitstream_filter_filter(h264_bit_stream_filter_context, in_stream->codec, NULL, &av_packet.data, &av_packet.size, av_packet.data, av_packet.size, 0);
-#endif
-
-#ifdef USE_AACBSF
-		av_bitstream_filter_filter(aac_bit_stream_filter_context, in_stream->codec, NULL, &av_packet.data, &av_packet.size, av_packet.data, av_packet.size, 0);
-#endif
-
-		// 转换PTS/DTS
-		av_packet.pts = av_rescale_q_rnd(av_packet.pts, in_stream->time_base, out_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-		av_packet.dts = av_rescale_q_rnd(av_packet.dts, in_stream->time_base, out_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-		av_packet.duration = av_rescale_q(av_packet.duration, in_stream->time_base, out_stream->time_base);
-		av_packet.pos = -1;
-		av_packet.stream_index = stream_index;
-
-		// 写入编码包
-		errCode = av_interleaved_write_frame(output_format_context, &av_packet);
+		errCode = av_read_frame(input_video_format_context, &av_video_packet);
 		if (errCode < 0)
 			break;
 
-		av_free_packet(&av_packet);
+		// 写入
+#ifdef USE_H264BSF
+		av_bitstream_filter_filter(h264_bit_stream_filter_context, input_video_stream->codec, NULL, &av_video_packet.data, &av_video_packet.size, av_video_packet.data, av_video_packet.size, 0);
+#endif
+
+		// 转换PTS/DTS
+		av_video_packet.pts = av_rescale_q_rnd(av_video_packet.pts, input_video_stream->time_base, output_video_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+		av_video_packet.dts = av_rescale_q_rnd(av_video_packet.dts, input_video_stream->time_base, output_video_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+		av_video_packet.duration = av_rescale_q(av_video_packet.duration, input_video_stream->time_base, output_video_stream->time_base);
+		av_video_packet.pos = -1;
+		av_video_packet.stream_index = output_video_stream_index;
+
+		// 写入编码包
+		errCode = av_interleaved_write_frame(output_format_context, &av_video_packet);
+		if (errCode < 0)
+			break;
+
+		// 5帧音频
+		for (int index2 = 0; index2 < 5; ++index2)
+		{
+			errCode = av_read_frame(input_audio_format_context, &av_audio_packet);
+			if (errCode < 0)
+				break;
+
+			// 写入
+#ifdef USE_AACBSF
+			av_bitstream_filter_filter(aac_bit_stream_filter_context, input_audio_stream->codec, NULL, &av_audio_packet.data, &av_audio_packet.size, av_audio_packet.data, av_audio_packet.size, 0);
+#endif
+
+			// 转换PTS/DTS
+			av_audio_packet.pts = av_rescale_q_rnd(av_audio_packet.pts, input_audio_stream->time_base, output_audio_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			av_audio_packet.dts = av_rescale_q_rnd(av_audio_packet.dts, input_audio_stream->time_base, output_audio_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			av_audio_packet.duration = av_rescale_q(av_audio_packet.duration, input_audio_stream->time_base, output_audio_stream->time_base);
+			av_audio_packet.pos = -1;
+			av_audio_packet.stream_index = output_audio_stream_index;
+
+			// 写入编码包
+			errCode = av_interleaved_write_frame(output_format_context, &av_audio_packet);
+			if (errCode < 0)
+				break;
+
+			av_free_packet(&av_audio_packet);
+		}
+
+		av_free_packet(&av_video_packet);
 	}
 
 	// 写文件尾

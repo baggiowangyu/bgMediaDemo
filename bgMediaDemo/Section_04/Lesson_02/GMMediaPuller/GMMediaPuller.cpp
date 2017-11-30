@@ -33,6 +33,41 @@ extern "C" {
 
 #include <iostream>
 
+//#define USE_H264BSF
+#define USE_AACBSF
+
+bool need_stop = false;
+
+BOOL WINAPI HandlerRoutine(DWORD dwCtrlType)
+{
+	switch (dwCtrlType)
+	{
+	case CTRL_C_EVENT:
+		// Ctrl + C
+		need_stop = true;
+		break;
+	case CTRL_BREAK_EVENT:
+		// Ctrl + Break
+		need_stop = true;
+		break;
+	case CTRL_CLOSE_EVENT:
+		// Close or End Task
+		need_stop = true;
+		break;
+	case CTRL_LOGOFF_EVENT:
+		// System user logoff
+		need_stop = true;
+		break;
+	case CTRL_SHUTDOWN_EVENT:
+		// System will shutdown
+		need_stop = true;
+		break;
+	default:
+		break;
+	}
+	return TRUE;
+}
+
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -41,6 +76,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		printf("%s <stream_url> <local_url>\n", argv[0]);
 		return 0;
 	}
+
+	BOOL b = SetConsoleCtrlHandler(HandlerRoutine, TRUE);
 
 	int errCode = 0;
 
@@ -82,14 +119,19 @@ int _tmain(int argc, _TCHAR* argv[])
 	if (errCode < 0)
 		return errCode;
 
+	AVOutputFormat *output_format = output_format_context->oformat;
+
 	//////////////////////////////////////////////////////////////////////////
 	//
 	// 分析流，拿到视音频信息
 	//
 	//////////////////////////////////////////////////////////////////////////
 
-	int stream_video_index = -1;
-	int stream_audio_index = -1;
+	int input_video_stream_index = -1;
+	int input_audio_stream_index = -1;
+
+	int output_video_stream_index = -1;
+	int output_audio_stream_index = -1;
 
 	AVStream *input_video_stream = NULL;
 	AVStream *output_video_stream = NULL;
@@ -101,27 +143,145 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
 		if (stream_format_context->streams[index]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
 		{
-			stream_video_index = index;
+			input_video_stream_index = index;
 			input_video_stream = stream_format_context->streams[index];
+
 			output_video_stream = avformat_new_stream(output_format_context, input_video_stream->codec->codec);
+
+			if (!output_video_stream)
+				return AVERROR_UNKNOWN;
+
+			output_video_stream_index = output_video_stream->index;
+
+			// 复制编码上下文
+			errCode = avcodec_copy_context(output_video_stream->codec, input_video_stream->codec);
+			if (errCode < 0)
+				return errCode;
+
+			output_video_stream->codec->codec_tag = 0;
+
+			if (output_format_context->oformat->flags & AVFMT_GLOBALHEADER)
+				output_video_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 		}
 		else if (stream_format_context->streams[index]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
 		{
-			stream_audio_index = index;
+			input_audio_stream_index = index;
 			input_audio_stream = stream_format_context->streams[index];
+
 			output_audio_stream = avformat_new_stream(output_format_context, input_audio_stream->codec->codec);
+
+			if (!output_audio_stream)
+				return AVERROR_UNKNOWN;
+
+			output_audio_stream_index = output_audio_stream->index;
+
+			// 复制编码上下文
+			errCode = avcodec_copy_context(output_audio_stream->codec, input_audio_stream->codec);
+			if (errCode < 0)
+				return errCode;
+
+			output_audio_stream->codec->codec_tag = 0;
+
+			if (output_format_context->oformat->flags & AVFMT_GLOBALHEADER)
+				output_audio_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
 		}
 	}
 
 	av_dump_format(stream_format_context, 0, T2A(stream_url), 0);
 
-	
+	//////////////////////////////////////////////////////////////////////////
+	//
+	// 打开输出文件，写入文件头
+	//
+	//////////////////////////////////////////////////////////////////////////
+
+	if (!(output_format_context->flags & AVFMT_NOFILE))
+	{
+		errCode = avio_open(&output_format_context->pb, T2A(local_url), AVIO_FLAG_WRITE);
+		if (errCode < 0)
+			return errCode;
+	}
+
+	errCode = avformat_write_header(output_format_context, NULL);
+	if (errCode < 0)
+		return errCode;
+
+#ifdef USE_H264BSF
+	AVBitStreamFilterContext *h264_bit_stream_filter_context = av_bitstream_filter_init("h264_mp4toannexb");
+#endif
+
+#ifdef USE_AACBSF
+	AVBitStreamFilterContext *aac_bit_stream_filter_context = av_bitstream_filter_init("aac_adtstoasc");
+#endif
+
+	AVPacket av_packet;
+	int frame_index = 0;
+	int total = 0;
+	int size = 0;
+	int stream_index = -1;
+
+	// 按照一个视频帧带五个音频帧的方式进行复用，尝试一下
+	while (true)
+	{
+		if (need_stop)
+			break;
+
+		errCode = av_read_frame(stream_format_context, &av_packet);
+		if (errCode < 0)
+			break;
+
+		if (av_packet.stream_index == input_video_stream_index)
+		{
+#ifdef USE_H264BSF
+			av_bitstream_filter_filter(h264_bit_stream_filter_context, input_video_stream->codec, NULL, &av_packet.data, &av_packet.size, av_packet.data, av_packet.size, 0);
+#endif
+			stream_index = output_video_stream_index;
+		}
+		else if (av_packet.stream_index == input_audio_stream_index)
+		{
+#ifdef USE_AACBSF
+			av_bitstream_filter_filter(aac_bit_stream_filter_context, input_audio_stream->codec, NULL, &av_packet.data, &av_packet.size, av_packet.data, av_packet.size, 0);
+#endif
+			stream_index = output_audio_stream_index;
+		}
+
+		// 转换PTS/DTS
+		av_packet.pts = av_rescale_q_rnd(av_packet.pts, input_video_stream->time_base, output_video_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+		av_packet.dts = av_rescale_q_rnd(av_packet.dts, input_video_stream->time_base, output_video_stream->time_base, (AVRounding)(AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+		av_packet.duration = av_rescale_q(av_packet.duration, input_video_stream->time_base, output_video_stream->time_base);
+		av_packet.pos = -1;
+		av_packet.stream_index = stream_index;
+
+		size = av_packet.size;
+
+		// 写入编码包
+		errCode = av_interleaved_write_frame(output_format_context, &av_packet);
+		if (errCode < 0)
+			break;
+
+		printf("Write a  packet.\t size : %d,\t total : %d\n", size, total);
+		total += size;
+
+		av_free_packet(&av_packet);
+	}
+
+	// 写文件尾
+	av_write_trailer(output_format_context);
+	printf("Write file tailer...\n");
 
 	//////////////////////////////////////////////////////////////////////////
 	//
 	// 清理资源
 	//
 	//////////////////////////////////////////////////////////////////////////
+
+	avformat_close_input(&stream_format_context);
+
+	// 关闭输出文件
+	if (output_format_context && !(output_format->flags & AVFMT_NOFILE))
+		avio_close(output_format_context->pb);
+
+	avformat_free_context(output_format_context);
 
 	system("pause");
 	return 0;

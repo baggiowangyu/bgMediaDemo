@@ -2,6 +2,7 @@
 //
 // 本范例将h264文件和aac文件封装为带音轨的MP4文件
 // $(OutDir)\BOB.h264 $(OutDir)\BOB.mp3 $(OutDir)\BOB.mp4
+// 粗暴测试了一下，似乎效果还可以
 
 #include "stdafx.h"
 

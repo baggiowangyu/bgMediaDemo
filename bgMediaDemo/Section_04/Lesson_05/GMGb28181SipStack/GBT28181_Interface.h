@@ -6,12 +6,34 @@
 // 后续2015/2016标准通过继承扩展来实现
 //
 
+typedef struct _GBT28181_LOCAL_SIP_SERVICE_SETTINS_
+{
+	char ip_[32];
+};
+
+typedef struct _GBT28181_UP_SIP_SERVICE_SETTINS_
+{
+
+};
+
+typedef struct _GBT28181_DOWN_SIP_SERVICE_SETTINS_
+{
+
+};
+
 class GBT28181Interface
 {
 public:
 	GBT28181Interface();
 	virtual ~GBT28181Interface();
 
+	// 初始化GB/T 28181相关信息
+	// 初始化需要传入的数据
+	// 1.本地监听IP、端口
+	// 2.本地UAC地址编码（国标ID）吧
+	// 3.本地UAC密码
+	// 4.远端UAS-IP、端口
+	// 5.超时时间
 	int Init();
 
 	//////////////////////////////////////////////////////////////////////////

@@ -3,6 +3,8 @@
 
 #include "stdafx.h"
 
+#define __STDC_CONSTANT_MACROS
+
 extern "C" {
 #include "libavformat/avformat.h"
 #include "libavformat/avio.h"
@@ -288,8 +290,8 @@ static int write_output_file_header(AVFormatContext *output_format_context)
 {
     int error;
     if ((error = avformat_write_header(output_format_context, NULL)) < 0) {
-        fprintf(stderr, "Could not write output file header (error '%s')\n",
-                av_err2str(error));
+//         fprintf(stderr, "Could not write output file header (error '%s')\n",
+//                 av_err2str(error));
         return error;
     }
     return 0;
@@ -358,7 +360,7 @@ static int init_converted_samples(uint8_t ***converted_input_samples,
      * Each pointer will later point to the audio samples of the corresponding
      * channels (although it may be NULL for interleaved formats).
      */
-    if (!(*converted_input_samples = calloc(output_codec_context->channels,
+    if (!(*converted_input_samples = (uint8_t **)calloc(output_codec_context->channels,
                                             sizeof(**converted_input_samples)))) {
         fprintf(stderr, "Could not allocate converted input sample pointers\n");
         return AVERROR(ENOMEM);

@@ -133,7 +133,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GMAudioChangeEncode", "Sect
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GMAudioResample", "Section_01\Lesson_05\GMAudioResample\GMAudioResample.vcproj", "{12E9C7E5-F5D7-455B-A997-59FDB879B9AE}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GMAudioTranscode", "GMAudioTranscode\GMAudioTranscode.vcproj", "{E2EC7975-A468-47ED-AF05-CB50F0DCDEA2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GMAudioTranscode", "Section_01\Lesson_05\GMAudioTranscode\GMAudioTranscode.vcproj", "{E2EC7975-A468-47ED-AF05-CB50F0DCDEA2}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

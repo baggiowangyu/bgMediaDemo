@@ -31,11 +31,16 @@ public:
 	int __stdcall GMAudioTranscode(std::string source_audio, std::string target_audio);
 
 private:
-	open_input_file
+	int open_input_file(const char *filename);
+	int open_output_file(const char *filename);
 
 private:
 	_GMAudioTranscodeStateCallback state_callback_;
 	_GMAudioTranscodeExceptionCallback except_callback_;
+
+private:
+	AVFormatContext **input_format_context;
+	AVCodecContext **input_codec_context;
 };
 
 

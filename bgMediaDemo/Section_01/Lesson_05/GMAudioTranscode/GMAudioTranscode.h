@@ -17,14 +17,6 @@ typedef void (__stdcall * _GMAudioTranscodeExceptionCallback)(int errcode, std::
 
 class FFmpegAudioTranscode;
 
-/**
- * 接口说明：开始一个音频转码工作
- * 参数说明：
- *	@source_audio		原始音频文件全路径
- *	@target_audio		转换后的音频文件全路径
- *	@state_callback		转换状态回调通知函数
- *	@except_callback	转换异常回调通知函数
- */
 class GMMediaTranscoder
 {
 public:
@@ -32,10 +24,20 @@ public:
 	~GMMediaTranscoder();
 
 public:
+	/**
+	 * 安装回调接口
+	 * 目前只实现了异常回调，进度回调暂不实现
+	 */
 	void SetupStateCallbackFunc(_GMAudioTranscodeStateCallback func);
 	void SetupExceptionCallbackFunc(_GMAudioTranscodeExceptionCallback func);
 
 public:
+	/**
+	 * 接口说明：开始一个音频转码工作
+	 * 参数说明：
+	 *	@source_audio		原始音频文件全路径
+	 *	@target_audio		转换后的音频文件全路径
+	 */
 	int __stdcall Transcode(std::string source_audio, std::string target_audio);
 
 private:

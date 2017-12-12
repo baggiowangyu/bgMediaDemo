@@ -10,8 +10,12 @@
 //
 //////////////////////////////////////////////////////////////////////////
 
-typedef void (__stdcall * _GMAudioTranscodeStateCallback)(int work_index, int progress);
-typedef void (__stdcall * _GMAudioTranscodeExceptionCallback)(int work_index, int errcode, std::string errinfo);
+#include <string>
+
+typedef void (__stdcall * _GMAudioTranscodeStateCallback)(int progress);
+typedef void (__stdcall * _GMAudioTranscodeExceptionCallback)(int errcode, std::string errinfo);
+
+class FFmpegAudioTranscode;
 
 /**
  * 接口说明：开始一个音频转码工作
@@ -28,19 +32,19 @@ public:
 	~GMMediaTranscoder();
 
 public:
-	int __stdcall GMAudioTranscode(std::string source_audio, std::string target_audio);
+	void SetupStateCallbackFunc(_GMAudioTranscodeStateCallback func);
+	void SetupExceptionCallbackFunc(_GMAudioTranscodeExceptionCallback func);
+
+public:
+	int __stdcall Transcode(std::string source_audio, std::string target_audio);
 
 private:
-	int open_input_file(const char *filename);
-	int open_output_file(const char *filename);
+	FFmpegAudioTranscode *audio_transcoder_;
 
 private:
 	_GMAudioTranscodeStateCallback state_callback_;
 	_GMAudioTranscodeExceptionCallback except_callback_;
 
-private:
-	AVFormatContext **input_format_context;
-	AVCodecContext **input_codec_context;
 };
 
 

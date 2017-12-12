@@ -290,13 +290,6 @@ static int write_output_file_header(AVFormatContext *output_format_context)
 {
     int error;
     if ((error = avformat_write_header(output_format_context, NULL)) < 0) {
-<<<<<<< HEAD
-//         fprintf(stderr, "Could not write output file header (error '%s')\n",
-//                 av_err2str(error));
-=======
-        //fprintf(stderr, "Could not write output file header (error '%s')\n",
-        //        av_err2str(error));
->>>>>>> 434f13846eedd9c3cdac4cae8b35c48148f5e86b
         return error;
     }
     return 0;

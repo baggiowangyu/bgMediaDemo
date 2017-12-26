@@ -17,8 +17,9 @@ int GMStreamPusherEx::OpenTargetUrl(const char *target_url)
 {
 	int errCode = 0;
 
+	// 这里的输出格式，最好是ts，这样可以支持rtmp、rtp、hls
 	AVFormatContext *output_format_context = NULL;
-	errCode = avformat_alloc_output_context2(&output_format_context, NULL, "flv", target_url);
+	errCode = avformat_alloc_output_context2(&output_format_context, NULL, "ts", target_url);
 	if (errCode < 0)
 	{
 		char errmsg[4096] = {0};
@@ -55,18 +56,26 @@ int GMStreamPusherEx::SetVideoParam(int width, int height, int frame_rate, int v
 	if (!output_video_codec)
 		return -2;
 
-	// 这里要准备好输出的AVCodecContext
-	output_video_codec_context = avcodec_alloc_context3(output_video_codec);
-	if (!output_video_codec_context)
-		return -1;
+	//// 这里要准备好输出的AVCodecContext
+	//output_video_codec_context = avcodec_alloc_context3(output_video_codec);
+	//if (!output_video_codec_context)
+	//	return -1;
 
-	output_video_codec_context->width = width;
-	output_video_codec_context->height = height;
-	output_video_codec_context->time_base.num = 1;
-	output_video_codec_context->time_base.den = frame_rate;
-	output_video_codec_context->pix_fmt = av_pixel_fmt;
-	output_video_codec_context->bit_rate = 600000;
-	output_video_codec_context->codec_type = AVMEDIA_TYPE_VIDEO;
+	// 创建视频流
+	AVStream *output_video_stream = avformat_new_stream(output_format_context, output_video_codec);
+	output_video_codec_context = output_video_stream->codec;
+
+	output_video_codec_context->width			= width;
+	output_video_codec_context->height			= height;
+	output_video_codec_context->time_base.num	= 1;
+	output_video_codec_context->time_base.den	= frame_rate;
+	output_video_codec_context->pix_fmt			= av_pixel_fmt;
+	output_video_codec_context->bit_rate		= 600000;
+	output_video_codec_context->codec_type		= AVMEDIA_TYPE_VIDEO;
+	output_video_codec_context->gop_size		= 10;
+	output_video_codec_context->max_b_frames	= 1;
+
+	
 
 	return 0;
 }
@@ -139,20 +148,26 @@ int GMStreamPusherEx::SetAudioParam(int bit_rate, int sample_rate, int sample_fm
 	if (!output_audio_codec_context)
 		return -1;
 
-	output_audio_codec_context->sample_rate = sample_rate;
-	output_audio_codec_context->bit_rate = bit_rate
-	output_audio_codec_context->channel_layout = audio_channel_layout;
-	output_audio_codec_context->channels = av_get_channel_layout_nb_channels(output_audio_codec_context->channel_layout);
-	output_audio_codec_context->pix_fmt = av_audio_sample_fmt;
-	output_audio_codec_context->bit_rate = 64000;
-	output_audio_codec_context->codec_type = AVMEDIA_TYPE_AUDIO;
+	output_audio_codec_context->sample_rate		= sample_rate;
+	output_audio_codec_context->bit_rate		= bit_rate
+	output_audio_codec_context->channel_layout	= audio_channel_layout;
+	output_audio_codec_context->channels		= av_get_channel_layout_nb_channels(output_audio_codec_context->channel_layout);
+	output_audio_codec_context->pix_fmt			= av_audio_sample_fmt;
+	output_audio_codec_context->bit_rate		= 64000;
+	output_audio_codec_context->codec_type		= AVMEDIA_TYPE_AUDIO;
+
+	// 创建音频流
 
 	return 0;
 }
 
-int GMStreamPusherEx::InputMediaData(const unsigned char *data, int data_len)
+int GMStreamPusherEx::InputMediaData(const unsigned char *data, int data_len, int data_type /* = MEDIA_TYPE_VIDEO */)
 {
 	AVPacket packet;
+
+	packet.data = data;
+	packet.size = data_len;
+	packet.
 
 	return 0;
 }

@@ -1,6 +1,10 @@
 #ifndef _GM_STREAM_PUSHER_EX_H_
 #define _GM_STREAM_PUSHER_EX_H_
 
+// 数据类型
+#define MEDIA_TYPE_VIDEO				0x00000001
+#define MEDIA_TYPE_AUDIO				0x00000002
+
 // 视频编码器ID
 #define MEDIA_CODEC_H264				0x00000001
 	
@@ -42,7 +46,7 @@ public:
 public:
 	int SetVideoParam(int width, int height, int frame_rate, int video_codec = MEDIA_CODEC_H264, int color_fmt = VIDEO_COLOR_FMT_YUV420);
 	int SetAudioParam(int bit_rate, int sample_rate, int sample_fmt = AUDIO_BIT_S16, int channel_layout = AUDIO_CHENNAL_LAYOUT_STEREO, int audio_codec = MEDIA_CODEC_AAC);
-	int InputMediaData(const unsigned char *data, int data_len);
+	int InputMediaData(const unsigned char *data, int data_len, int data_type = MEDIA_TYPE_VIDEO);
 
 private:
 	AVFormatContext *output_format_context;

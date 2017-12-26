@@ -21,6 +21,7 @@ public:
 private:
 	AVFormatContext *output_format_context;
 	AVOutputFormat *output_format;
+	AVCodecContext *output_video_codec_context;
 };
 
 #endif//_GM_STREAM_PUSHER_EX_H_

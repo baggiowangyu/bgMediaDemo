@@ -116,7 +116,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	AVFormatContext *output_format_context = NULL;
 	errCode = avformat_alloc_output_context2(&output_format_context, NULL, "flv", T2A(stream_server_url));
 	if (errCode < 0)
+	{
+		char errmsg[4096] = {0};
+		printf("Open push url failed...%s\n", av_make_error_string(errmsg, 4096, errCode));
 		return errCode;
+	}
 
 	AVOutputFormat *output_format = output_format_context->oformat;
 

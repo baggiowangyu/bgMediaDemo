@@ -1,13 +1,20 @@
 #include "stdafx.h"
 #include "GMStreamGenerator.h"
 
+#include <Windows.h>
+
+extern "C" 
+{
+#include "libavformat/avformat.h"
+};
+
 DWORD WINAPI StreamGeneratorThread(LPVOID lpParam)
 {
 	GMStreamGenerator *generator = (GMStreamGenerator *)lpParam;
 	generator->is_generator_working_ = true;
 
 	AVFormatContext *input_format_context = NULL;
-	int errCode = avformat_open_input(input_format_context, generator->GetSourceUrl().c_str(), NULL, NULL);
+	int errCode = avformat_open_input(&input_format_context, generator->GetSourceUrl().c_str(), NULL, NULL);
 	if (errCode < 0)
 		return errCode;
 
@@ -64,6 +71,12 @@ DWORD WINAPI StreamGeneratorThread(LPVOID lpParam)
 		if (packet.stream_index == input_audio_stream_index)
 			media_type = MEDIA_AUDIO;
 
+		if (!(generator->GetMediaType() & media_type))
+		{
+			av_free_packet(&packet);
+			continue;
+		}
+
 		if (generator->GetStreamType() & STREAM_ES)
 		{
 			// ES流
@@ -78,7 +91,7 @@ DWORD WINAPI StreamGeneratorThread(LPVOID lpParam)
 			// YUV数据流
 		}
 
-		av_free_packet(packet);
+		av_free_packet(&packet);
 
 	} while (true);
 
@@ -93,7 +106,8 @@ GMStreamGenerator::GMStreamGenerator(GMStreamGenteratorNotifer *notier /* = NULL
 , stream_type_(0)
 , is_generator_working_(false)
 {
-
+	av_register_all();
+	avformat_network_init();
 }
 
 GMStreamGenerator::~GMStreamGenerator()

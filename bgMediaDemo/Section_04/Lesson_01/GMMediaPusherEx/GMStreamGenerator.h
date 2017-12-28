@@ -1,10 +1,14 @@
 #ifndef _GM_STREAM_GENERATOR_H_
 #define _GM_STREAM_GENERATOR_H_
 
+#include <string>
+
+#define __STDC_CONSTANT_MACROS
+
 #define MEDIA_VIDEO	0x001							// 视频流
 #define MEDIA_AUDIO	0x010							// 音频流
 //#define STREAM_TEXT		0x100						// 文字流
-#define MEDIA_ALL		(MEDIA_VIDEO|STREAM_AUDIO)		// 视音频流
+#define MEDIA_ALL		(MEDIA_VIDEO|MEDIA_AUDIO)		// 视音频流
 
 #define STREAM_ES		0x0001
 #define STREAM_PS		0x0010

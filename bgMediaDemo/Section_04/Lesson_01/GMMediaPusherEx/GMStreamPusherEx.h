@@ -1,9 +1,19 @@
 #ifndef _GM_STREAM_PUSHER_EX_H_
 #define _GM_STREAM_PUSHER_EX_H_
 
+#include <string>
+
+struct AVFormatContext;
+struct AVOutputFormat;
+struct AVCodecContext;
+struct AVCodec;
+struct AVStream;
+
+#define __STDC_CONSTANT_MACROS
+
 // 数据类型
 #define MEDIA_TYPE_VIDEO				0x00000001
-#define MEDIA_TYPE_AUDIO				0x00000002
+#define MEDIA_TYPE_AUDIO				0x00000010
 
 // 视频编码器ID
 #define MEDIA_CODEC_H264				0x00000001
@@ -46,11 +56,18 @@ public:
 public:
 	int SetVideoParam(int width, int height, int frame_rate, int video_codec = MEDIA_CODEC_H264, int color_fmt = VIDEO_COLOR_FMT_YUV420);
 	int SetAudioParam(int bit_rate, int sample_rate, int sample_fmt = AUDIO_BIT_S16, int channel_layout = AUDIO_CHENNAL_LAYOUT_STEREO, int audio_codec = MEDIA_CODEC_AAC);
+
+public:
+	int StartPush();
 	int InputMediaData(const unsigned char *data, int data_len, int data_type = MEDIA_TYPE_VIDEO);
+	void StopPush();
 
 private:
+	std::string target_url_;
 	AVFormatContext *output_format_context;
 	AVOutputFormat *output_format;
+	AVStream *output_video_stream;
+	AVStream *output_audio_stream;
 	AVCodecContext *output_video_codec_context;
 	AVCodecContext *output_audio_codec_context;
 	AVCodec *output_video_codec;

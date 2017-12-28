@@ -2,11 +2,11 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="GMMediaPusherEx"
-	ProjectGUID="{B599FBC1-E4EB-40F7-BEEA-4A3FF62B1C64}"
-	RootNamespace="GMMediaPusherEx"
+	Name="GMAudioTranscodeDemo"
+	ProjectGUID="{6084056E-234D-4753-BEAB-30786C842508}"
+	RootNamespace="GMAudioTranscodeDemo"
 	Keyword="Win32Proj"
-	TargetFrameworkVersion="131072"
+	TargetFrameworkVersion="196613"
 	>
 	<Platforms>
 		<Platform
@@ -41,11 +41,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\..\ext\ffmpeg\3.4\include"
+				AdditionalIncludeDirectories="..\GMAudioTranscode"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
+				RuntimeLibrary="3"
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				DebugInformationFormat="4"
@@ -61,9 +61,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="avcodec.lib avdevice.lib avfilter.lib avformat.lib avutil.lib postproc.lib swresample.lib swscale.lib"
+				AdditionalDependencies="GMAudioTranscode.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="..\..\..\ext\ffmpeg\3.4\lib\x86"
+				AdditionalLibraryDirectories="&quot;$(OutDir)&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -88,7 +88,6 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="COPY $(SolutionDir)ext\ffmpeg\3.4\bin\x86\avcodec-57.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\3.4\bin\x86\avdevice-57.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\3.4\bin\x86\avfilter-6.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\3.4\bin\x86\avformat-57.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\3.4\bin\x86\avutil-55.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\3.4\bin\x86\postproc-54.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\3.4\bin\x86\swresample-2.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\3.4\bin\x86\swscale-4.dll $(OutDir)"
 			/>
 		</Configuration>
 		<Configuration
@@ -175,7 +174,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\GMMediaPusherEx.cpp"
+				RelativePath=".\GMAudioTranscodeDemo.cpp"
 				>
 			</File>
 			<File
@@ -218,30 +217,6 @@
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
-		</Filter>
-		<Filter
-			Name="流发生器"
-			>
-			<File
-				RelativePath=".\GMStreamGenerator.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\GMStreamGenerator.h"
-				>
-			</File>
-		</Filter>
-		<Filter
-			Name="推流器"
-			>
-			<File
-				RelativePath=".\GMStreamPusherEx.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\GMStreamPusherEx.h"
-				>
-			</File>
 		</Filter>
 		<File
 			RelativePath=".\ReadMe.txt"

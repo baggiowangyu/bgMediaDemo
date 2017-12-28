@@ -115,9 +115,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	//////////////////////////////////////////////////////////////////////////
 
 	AVFormatContext *output_format_context = NULL;
-	errCode = avformat_alloc_output_context2(&output_format_context, NULL, NULL, T2A(local_url));
+	errCode = avformat_alloc_output_context2(&output_format_context, NULL, "flv", T2A(local_url));
 	if (errCode < 0)
+	{
+		char errmsg[4096] = {0};
+		printf("Open push url failed...%s\n", av_make_error_string(errmsg, 4096, errCode));
 		return errCode;
+	}
 
 	AVOutputFormat *output_format = output_format_context->oformat;
 
@@ -197,7 +201,9 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	if (!(output_format_context->flags & AVFMT_NOFILE))
 	{
-		errCode = avio_open(&output_format_context->pb, T2A(local_url), AVIO_FLAG_WRITE);
+		// 这里根据输出URL，设置强制使用tcp传输
+		errCode = avio_open2(&output_format_context->pb, T2A(local_url), AVIO_FLAG_WRITE, nullptr, &options);
+		//errCode = avio_open(&output_format_context->pb, T2A(local_url), AVIO_FLAG_WRITE);
 		if (errCode < 0)
 			return errCode;
 	}

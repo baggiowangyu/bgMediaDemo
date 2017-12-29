@@ -2,11 +2,11 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="UACDemo"
-	ProjectGUID="{54AAA51A-529A-45E5-A68C-BD5B2311E37D}"
-	RootNamespace="UACDemo"
+	Name="UASDemo"
+	ProjectGUID="{67D6078E-A4C8-4738-B645-2F1C2C5EFA2C}"
+	RootNamespace="UASDemo"
 	Keyword="Win32Proj"
-	TargetFrameworkVersion="131072"
+	TargetFrameworkVersion="196613"
 	>
 	<Platforms>
 		<Platform
@@ -45,7 +45,7 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				DebugInformationFormat="4"
@@ -194,7 +194,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\UACDemo.cpp"
+				RelativePath=".\UASDemo.cpp"
 				>
 			</File>
 		</Filter>

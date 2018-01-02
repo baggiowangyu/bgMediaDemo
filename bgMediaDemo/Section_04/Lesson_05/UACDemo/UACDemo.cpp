@@ -6,6 +6,7 @@
 
 #include "stdafx.h"
 #include "eXosip2/eXosip.h"
+#include "eXosip2.h"
 
 #include <iostream>
 #include <WinSock2.h>
@@ -28,7 +29,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	std::cout<<"m - 执行 MESSAGE 方法"<<std::endl;
 
 	// 初始化eXosip
-	struct eXosip_t *context_eXosip = NULL;
+	struct eXosip_t *context_eXosip = new struct eXosip_t;
 	int errCode = eXosip_init(context_eXosip);
 
 	if (errCode != 0)
@@ -88,7 +89,7 @@ int _tmain(int argc, _TCHAR* argv[])
 					"0=anonymous 0 0 IN IP4 0.0.0.0\r\n"  
 					"t=1 10\r\n"  
 					"a=username:rainfish\r\n"  
-					"a=password:123\r\n");
+					"a=password:aaaaaa\r\n");
 
 				osip_message_set_body(invite, body, strlen(body));
 				osip_message_set_content_type(invite, "application/sdp");

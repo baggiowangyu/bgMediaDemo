@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\third_party\eXosip\include;..\third_party\osip\include;&quot;..\third_party\win32-bin\include&quot;"
+				AdditionalIncludeDirectories="..\third_party\eXosip\include;..\third_party\osip\include;&quot;..\third_party\win32-bin\include&quot;;..\third_party\eXosip\src"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -61,9 +61,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib eXosip.lib osip2.lib osipparser2.lib"
+				AdditionalDependencies="ws2_32.lib IPHLPAPI.lib Dnsapi.lib Crypt32.lib eXosip.lib osip2.lib osipparser2.lib libeay32.lib ssleay32.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="..\..\..\Debug"
+				AdditionalLibraryDirectories="..\..\..\Debug;..\..\..\ext\OpenSSL\0.9.8zh\lib\x86"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"

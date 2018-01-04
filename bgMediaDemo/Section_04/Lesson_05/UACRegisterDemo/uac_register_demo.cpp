@@ -20,14 +20,19 @@
 #include <eXosip2/eX_register.h>
 #include <eXosip2/eX_options.h>
 #include <eXosip2/eX_message.h>
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+//#include <arpa/inet.h>
+//#include <sys/types.h>
+//#include <sys/socket.h>
+
+#include <WinSock2.h>
+#include <process.h>
+
+eXosip_t *sip_context_ = NULL;
 
 using namespace std;
 
 //本地监听IP
-#define LISTEN_ADDR ("192.168.50.57")
+#define LISTEN_ADDR ("127.0.0.1")
 //本地监听端口
 #define UACPORT ("5061")
 #define UACPORTINT (5061)
@@ -36,7 +41,7 @@ using namespace std;
 //本地UAC密码
 #define UACPWD ("12345")
 //远程UAS IP
-#define UAS_ADDR ("192.168.50.57")
+#define UAS_ADDR ("127.0.0.1")
 //远程UAS 端口
 #define UAS_PORT ("5060")
 //超时
@@ -151,14 +156,14 @@ int SendRegister(int& registerId, CSipFromToHeader &from, CSipFromToHeader &to,
     static osip_message_t *regMsg = 0;
     int ret;
 
-    ::eXosip_add_authentication_info(userName.c_str(), userName.c_str(),
+    ::eXosip_add_authentication_info(sip_context_, userName.c_str(), userName.c_str(),
             pwd.c_str(), "MD5", NULL);
-    eXosip_lock();
+    eXosip_lock(sip_context_);
     //发送注册信息 401响应由eXosip2库自动发送
     if (0 == registerId)
     {
         // 注册消息的初始化
-        registerId = ::eXosip_register_build_initial_register(
+        registerId = ::eXosip_register_build_initial_register(sip_context_, 
                 from.GetFormatHeader().c_str(), to.GetFormatHeader().c_str(),
                 contact.GetContractFormatHeader().c_str(), expires, &regMsg);
         if (registerId <= 0)
@@ -169,7 +174,7 @@ int SendRegister(int& registerId, CSipFromToHeader &from, CSipFromToHeader &to,
     else
     {
         // 构建注册消息
-        ret = ::eXosip_register_build_register(registerId, expires, &regMsg);
+        ret = ::eXosip_register_build_register(sip_context_, registerId, expires, &regMsg);
         if (ret != OSIP_SUCCESS)
         {
             return ret;
@@ -194,11 +199,11 @@ int SendRegister(int& registerId, CSipFromToHeader &from, CSipFromToHeader &to,
         }
     }
     // 发送注册消息
-    ret = ::eXosip_register_send_register(registerId, regMsg);
+    ret = ::eXosip_register_send_register(sip_context_, registerId, regMsg);
     if (ret != OSIP_SUCCESS)
     {
         registerId = 0;
-    }eXosip_unlock();
+    }eXosip_unlock(sip_context_);
 
     return ret;
 }
@@ -296,9 +301,9 @@ static void help()
     cout << "please select method :";
 }
 //服务处理线程
-void *serverHandle(void *pUser)
+void serverHandle(void *pUser)
 {
-    sleep(3);
+    Sleep(3);
     help();
     char ch = getchar();
     getchar();
@@ -339,11 +344,11 @@ void *serverHandle(void *pUser)
         ch = getchar();
         getchar();
     }
-    return NULL;
+    return;
 }
 
 //事件处理线程
-void *eventHandle(void *pUser)
+void eventHandle(void *pUser)
 {
     eXosip_event_t* osipEventPtr = (eXosip_event_t*) pUser;
     switch (osipEventPtr->type)
@@ -371,39 +376,41 @@ void *eventHandle(void *pUser)
         break;
     }
     eXosip_event_free(osipEventPtr);
-    return NULL;
+    return;
 }
 
 int main()
 {
     iCurrentStatus = 0;
+
+	sip_context_ = eXosip_malloc();
+
     //库处理结果
     int result = OSIP_SUCCESS;
     //初始化库
-    if (OSIP_SUCCESS != (result = eXosip_init()))
+    if (OSIP_SUCCESS != (result = eXosip_init(sip_context_)))
     {
         printf("eXosip_init failure.\n");
         return 1;
     }
     cout << "eXosip_init success." << endl;
-    eXosip_set_user_agent(NULL);
+    eXosip_set_user_agent(sip_context_, NULL);
     //监听
-    if (OSIP_SUCCESS != eXosip_listen_addr(IPPROTO_UDP, NULL, UACPORTINT,
+    if (OSIP_SUCCESS != eXosip_listen_addr(sip_context_, IPPROTO_UDP, NULL, UACPORTINT,
             AF_INET, 0))
     {
         printf("eXosip_listen_addr failure.\n");
         return 1;
     }
     //设置监听网卡
-    if (OSIP_SUCCESS != eXosip_set_option(
+    if (OSIP_SUCCESS != eXosip_set_option(sip_context_, 
     EXOSIP_OPT_SET_IPV4_FOR_GATEWAY,
             LISTEN_ADDR))
     {
         return -1;
     }
     //开启服务线程
-    pthread_t pthser;
-    if (0 != pthread_create(&pthser, NULL, serverHandle, NULL))
+    if (0 != _beginthread(serverHandle, 0, NULL))
     {
         printf("创建主服务失败\n");
         return -1;
@@ -414,14 +421,14 @@ int main()
     while (true)
     {
         //等待事件 0的单位是秒，500是毫秒
-        osipEventPtr = ::eXosip_event_wait(0, 200);
+        osipEventPtr = ::eXosip_event_wait(sip_context_, 0, 200);
         //处理eXosip库默认处理
         {
-            usleep(500 * 1000);
-            eXosip_lock();
+            Sleep(500 * 1000);
+            eXosip_lock(sip_context_);
             //一般处理401/407采用库默认处理
-            eXosip_default_action(osipEventPtr);
-            eXosip_unlock();
+            eXosip_default_action(sip_context_, osipEventPtr);
+            eXosip_unlock(sip_context_);
         }
         //事件空继续等待
         if (NULL == osipEventPtr)
@@ -429,8 +436,7 @@ int main()
             continue;
         }
         //开启线程处理事件并在事件处理完毕将事件指针释放
-        pthread_t pth;
-        if (0 != pthread_create(&pth, NULL, eventHandle, (void*) osipEventPtr))
+        if (0 != _beginthread(eventHandle, 0, (void*) osipEventPtr))
         {
             printf("创建线程处理事件失败\n");
             continue;

@@ -28,7 +28,7 @@
 
 using namespace std;
 
-#define LISTEN_ADDR ("10.10.16.59")
+#define LISTEN_ADDR ("127.0.0.1")
 #define UASPORT (5060)
 
 

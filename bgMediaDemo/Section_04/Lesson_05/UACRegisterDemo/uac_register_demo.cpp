@@ -410,11 +410,12 @@ int main()
         return -1;
     }
     //开启服务线程
-    if (0 != _beginthread(serverHandle, 0, NULL))
-    {
-        printf("创建主服务失败\n");
-        return -1;
-    }
+	_beginthread(serverHandle, 0, NULL);
+//     if (0 != )
+//     {
+//         printf("创建主服务失败\n");
+//         return -1;
+//     }
     //事件用于等待
     eXosip_event_t* osipEventPtr = NULL;
     //开启事件循环
@@ -436,11 +437,12 @@ int main()
             continue;
         }
         //开启线程处理事件并在事件处理完毕将事件指针释放
-        if (0 != _beginthread(eventHandle, 0, (void*) osipEventPtr))
-        {
-            printf("创建线程处理事件失败\n");
-            continue;
-        }
+		_beginthread(eventHandle, 0, (void*) osipEventPtr);
+        //if (0 != _beginthread(eventHandle, 0, (void*) osipEventPtr))
+        //{
+        //    printf("创建线程处理事件失败\n");
+        //    continue;
+        //}
         osipEventPtr = NULL;
     }
 }

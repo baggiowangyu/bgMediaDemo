@@ -3,7 +3,7 @@
 #include "eXosip2/eXosip.h"
 #include "eXosip2.h"
 #include "UASImp.h"
-
+#include "bgSIPLogical.h"
 
 
 
@@ -129,103 +129,7 @@ DWORD WINAPI bgUASImp::WorkingThread(LPVOID lpParam)
 			// 新注册信息通知
 			OutputDebugString(_T("来了一条注册请求"));
 			{
-				// 准备发送的数据
-				int request_id = 0;				// 注册请求ID
-				int expires = 0;				// 超时时间
-				const char *code = NULL;		// 国标码
-				const char *ip = NULL;			// UAC-IP
-				const char *port = NULL;		// UAC-PORT
-				const char *content = NULL;		// 正文
-				bool is_authen_null = true;		// 是否有提交认证数据
-				const char *user_name = NULL;
-				const char *algorithm = NULL;
-				const char *realm = NULL;
-				const char *nonce = NULL;
-				const char *response = NULL;
-				const char *uri = NULL;
-
-				// 首先检查expires
-				osip_header_t* header_expires = NULL;
-				osip_message_header_get_byname(sip_event->request, "expires", 0, &header_expires);
-				if (NULL != header_expires && NULL != header_expires->hvalue)
-					expires = atoi(header_expires->hvalue);
-
-				// 注册返回，由发送方维护的请求ID，接收方接收后原样返回即可
-				request_id = sip_event->tid;
-
-				// 查看contact字段
-				osip_contact_t* contact = NULL;
-				osip_message_get_contact(sip_event->request, 0, &contact);
-				if (NULL != contact)
-				{
-					code = contact->url->username;
-					ip = contact->url->host;
-					port = contact->url->port;
-				}
-
-				// 解析 注册消息体
-				osip_body_t * body = NULL;
-				osip_message_get_body(sip_event->request, 0, &body);
-				if (NULL != body)
-					content = body->body;
-
-				// 鉴权信息
-				osip_authorization_t* authentication = NULL;
-				osip_message_get_authorization(sip_event->request, 0, &authentication);
-				if (NULL == authentication)
-					is_authen_null = true;
-				else
-				{
-					is_authen_null = false;
-					user_name = authentication->username;
-					algorithm = authentication->algorithm;
-					realm = authentication->realm;
-					nonce = authentication->nonce;
-					response = authentication->response;
-					uri = authentication->uri;
-				}
-
-				//
-				// 一切准备就绪，发送应答
-				int status = 500;
-				if (is_authen_null)
-					status = 401;
-				else
-					status = 200;
-
-				eXosip_lock(sip_context);
-				osip_message_t* answer = NULL;
-				int result = ::eXosip_message_build_answer(sip_context, request_id, status, &answer);
-
-				if (401 == status)
-				{
-					// 由SIP库生成认证方法和认证参数发送给客户端
-					const char *random = "9bd055";
-					const char *alg = "MD5";
-					char stream[4096] = {0};
-					sprintf_s(stream, 4096, "Digest realm=\"%s\",nonce=\"%s\",algorithm=%s", ip, random, alg);
-					osip_message_set_header(answer, "WWW-Authenticate", stream);
-				}
-				else if (200 == status)
-				{
-					char header[4096] = {0};
-					sprintf_s(header, 4096, "<sip:%s@%s:%s>;expires=%d", code, ip, port, expires);
-					osip_message_set_header(answer, "Contact", header);
-				}
-				else
-				{
-					// Do nothing ...
-				}
-
-				if (OSIP_SUCCESS != result)
-					eXosip_message_send_answer(sip_context, request_id, 400, NULL);
-				else
-					eXosip_message_send_answer(sip_context, request_id, status, answer);
-
-				if (0 == expires)
-					eXosip_register_remove(sip_context, request_id);
-
-				eXosip_unlock(sip_context);
+				bgSIPLogical::Register(sip_context, sip_event);
 			}
 			break;
 		case EXOSIP_REGISTRATION_SUCCESS:
@@ -351,6 +255,17 @@ DWORD WINAPI bgUASImp::WorkingThread(LPVOID lpParam)
 		case EXOSIP_MESSAGE_NEW:
 			// 一个新的输入请求
 			OutputDebugString(_T("EXOSIP_MESSAGE_NEW"));
+			{
+				if (MSG_IS_REGISTER(sip_event->request))
+				{
+					// 这是一个注册请求
+					bgSIPLogical::Register(sip_context, sip_event);
+				}
+				else if (MSG_IS_MESSAGE(sip_event->request))
+				{
+					bgSIPLogical::RecvSMS(sip_context, sip_event);
+				}
+			}
 			break;
 		case EXOSIP_MESSAGE_PROCEEDING:
 			// 请求返回了 1xx 状态码

@@ -115,12 +115,12 @@ BOOL CUACToolDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-	m_cUasIp.SetWindowText(_T("10.10.16.59"));
-	m_cUasPort.SetWindowText(_T("5090"));
+	m_cUasIp.SetWindowText(_T("127.0.0.1"));
+	m_cUasPort.SetWindowText(_T("5060"));
 	m_cUasCode.SetWindowText(_T("44011200002110000001"));
 
-	m_cUacIp.SetWindowText(_T("10.10.16.59"));
-	m_cUacPort.SetWindowText(_T("5091"));
+	m_cUacIp.SetWindowText(_T("127.0.0.1"));
+	m_cUacPort.SetWindowText(_T("5061"));
 	m_cUacCode.SetWindowText(_T("44011200002110000002"));
 
 	m_cUasIp.LimitText(15);
@@ -260,7 +260,7 @@ void CUACToolDlg::OnBnClickedBtnCall()
 
 	m_cInfo.AddString(_T("发送通话请求..."));
 
-	int errCode = uac_.Unregister();
+	int errCode = uac_.Call();
 	if (errCode != 0)
 		m_cInfo.AddString(_T("通话失败！"));
 	else
@@ -275,7 +275,7 @@ void CUACToolDlg::OnBnClickedBtnCloseCall()
 
 	m_cInfo.AddString(_T("发送挂断请求..."));
 
-	int errCode = uac_.Unregister();
+	int errCode = uac_.ReleaseCall();
 	if (errCode != 0)
 		m_cInfo.AddString(_T("挂断失败！"));
 	else
@@ -287,10 +287,21 @@ void CUACToolDlg::OnBnClickedBtnSendMessage()
 	//
 	// 发短消息
 	//
+	CString uas_ip, uas_port, uas_code;
+
+	m_cUasIp.GetWindowText(uas_ip);
+	m_cUasPort.GetWindowText(uas_port);
+	m_cUasCode.GetWindowText(uas_code);
+
+	USES_CONVERSION;
+	uac_.SetUASEnvironment(T2A(uas_code.GetString()), T2A(uas_ip.GetString()), _ttoi(uas_port.GetString()));
+
+	CString sms;
+	m_cMessage.GetWindowText(sms);
 
 	m_cInfo.AddString(_T("发送短消息..."));
 
-	int errCode = uac_.Unregister();
+	int errCode = uac_.SendSMS(T2A(sms.GetString()));
 	if (errCode != 0)
 		m_cInfo.AddString(_T("短消息发送失败！"));
 	else

@@ -106,8 +106,8 @@ BOOL CUASToolDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-	m_cUasIp.SetWindowText(_T("0.0.0.0"));
-	m_cUasPort.SetWindowText(_T("5090"));
+	m_cUasIp.SetWindowText(_T("127.0.0.1"));
+	m_cUasPort.SetWindowText(_T("5060"));
 	m_cUasCode.SetWindowText(_T("44011200002110000001"));
 
 	m_cUasIp.LimitText(15);

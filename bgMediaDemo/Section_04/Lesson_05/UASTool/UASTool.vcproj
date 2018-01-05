@@ -273,6 +273,18 @@
 				>
 			</File>
 		</Filter>
+		<Filter
+			Name="SIPLogical"
+			>
+			<File
+				RelativePath=".\bgSIPLogical.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\bgSIPLogical.h"
+				>
+			</File>
+		</Filter>
 		<File
 			RelativePath=".\ReadMe.txt"
 			>

@@ -64,11 +64,11 @@ int bgUACImp::Register()
 	eXosip_clear_authentication_info(sip_context_);
 
 	// 拼装必要字段
-	char from[4096] = {0};
-	sprintf_s(from, 4096, "sip:%s@%s:%d", uac_code_.c_str(), uac_ip_.c_str(), uac_port_);
+	//char from[4096] = {0};
+	//sprintf_s(from, 4096, "sip:%s@%s:%d", uac_code_.c_str(), uac_ip_.c_str(), uac_port_);
 
-	char to[4096] = {0};
-	sprintf_s(to, 4096, "sip:%s@%s:%d", uas_code_.c_str(), uas_ip_.c_str(), uas_port_);
+	//char to[4096] = {0};
+	//sprintf_s(to, 4096, "sip:%s@%s:%d", uas_code_.c_str(), uas_ip_.c_str(), uas_port_);
 
 	// 增加注册信息
 	errCode = eXosip_add_authentication_info(sip_context_, uac_code_.c_str(), uac_code_.c_str(), "12345678", "MD5", NULL);
@@ -76,14 +76,16 @@ int bgUACImp::Register()
 	eXosip_lock(sip_context_);
 
 	// 生成注册信息，得到注册ID
+	std::string uas_uri = get_uas_sip_uri_();
+	std::string uac_uri = get_uac_sip_uri_();
 	osip_message_t *reg = NULL;
-	int reg_id = eXosip_register_build_initial_register(sip_context_, from, to, NULL, 1800, &reg);
+	int reg_id = eXosip_register_build_initial_register(sip_context_, uac_uri.c_str(), uas_uri.c_str(), NULL, 1800, &reg);
 
 	if (reg == NULL)
 		return -1;
 
 	// 构建注册信息
-	errCode = eXosip_register_build_register(sip_context_, reg_id, 1800, &reg);
+	//errCode = eXosip_register_build_register(sip_context_, reg_id, 1800, &reg);
 
 	// 发送注册信息
 	errCode = eXosip_register_send_register(sip_context_, reg_id, reg);
@@ -223,4 +225,20 @@ int bgUACImp::SendSMS(const char *text)
 	eXosip_message_send_request(sip_context_, message);
 
 	return errCode;
+}
+
+std::string bgUACImp::get_uas_sip_uri_()
+{
+	char result[4096] = {0};
+	sprintf_s(result, 4096, "sip:%s@%s:%d", uas_code_.c_str(), uas_ip_.c_str(), uas_port_);
+
+	return result;
+}
+
+std::string bgUACImp::get_uac_sip_uri_()
+{
+	char result[4096] = {0};
+	sprintf_s(result, 4096, "sip:%s@%s", uac_code_.c_str(), uac_ip_.c_str());
+
+	return result;
 }

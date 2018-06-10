@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="GMVideoCollection"
-	ProjectGUID="{D5EB1FD5-FB00-4369-A78C-BFA8AC49A28B}"
-	RootNamespace="GMVideoCollection"
+	Name="GMAudioTranscodeV3"
+	ProjectGUID="{08EFA148-FD16-4701-B0CB-66E3DA4199DF}"
+	RootNamespace="GMAudioTranscodeV3"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -21,7 +21,7 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
-			CharacterSet="1"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -41,12 +41,12 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\..\ext\ffmpeg\2.8\include;..\..\..\ext\SDL\include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
+				AdditionalIncludeDirectories="..\..\..\ext\ffmpeg\include;..\..\..\ext\SDL\include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;__STDC_CONSTANT_MACROS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				UsePrecompiledHeader="0"
+				UsePrecompiledHeader="2"
 				WarningLevel="3"
 				DebugInformationFormat="4"
 			/>
@@ -61,9 +61,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="avcodec.lib avdevice.lib avfilter.lib avformat.lib avutil.lib postproc.lib swresample.lib swscale.lib SDL_ttf.lib SDL2.lib SDL2_image.lib"
+				AdditionalDependencies="avcodec.lib avdevice.lib avfilter.lib avformat.lib avutil.lib postproc.lib swresample.lib swscale.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="..\..\..\ext\ffmpeg\2.8\lib\x86;..\..\..\ext\SDL\lib\x86"
+				AdditionalLibraryDirectories="&quot;$(OutDir)&quot;;..\..\..\ext\ffmpeg\lib\x86;..\..\..\ext\SDL\lib\x86"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -88,7 +88,6 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avcodec-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avdevice-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avfilter-5.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avformat-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avutil-54.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\postproc-53.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\swresample-1.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\swscale-3.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libfreetype-6.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libjpeg-9.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libpng16-16.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libtiff-5.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libwebp-4.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\SDL_ttf.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\SDL2.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\SDL2_image.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\zlib1.dll $(OutDir)&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -175,7 +174,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\GMVideoCollection.cpp"
+				RelativePath=".\GMAudioTranscodeV3.cpp"
 				>
 			</File>
 			<File

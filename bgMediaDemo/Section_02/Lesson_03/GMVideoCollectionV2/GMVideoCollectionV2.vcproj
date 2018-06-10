@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="GMVideoCollection"
-	ProjectGUID="{D5EB1FD5-FB00-4369-A78C-BFA8AC49A28B}"
-	RootNamespace="GMVideoCollection"
+	Name="GMVideoCollectionV2"
+	ProjectGUID="{B96E0FF9-E929-4B31-B074-AF08F2D9B05E}"
+	RootNamespace="GMVideoCollectionV2"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="196613"
 	>
@@ -88,7 +88,6 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avcodec-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avdevice-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avfilter-5.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avformat-56.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\avutil-54.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\postproc-53.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\swresample-1.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\ffmpeg\2.8\bin\x86\swscale-3.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libfreetype-6.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libjpeg-9.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libpng16-16.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libtiff-5.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\libwebp-4.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\SDL_ttf.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\SDL2.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\SDL2_image.dll $(OutDir)&#x0D;&#x0A;COPY $(SolutionDir)ext\SDL\lib\x86\zlib1.dll $(OutDir)&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -175,7 +174,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\GMVideoCollection.cpp"
+				RelativePath=".\GMVideoCollectionV2.cpp"
 				>
 			</File>
 			<File

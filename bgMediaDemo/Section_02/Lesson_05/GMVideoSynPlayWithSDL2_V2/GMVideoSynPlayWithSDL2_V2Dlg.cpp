@@ -215,16 +215,21 @@ HCURSOR CGMVideoSynPlayWithSDL2_V2Dlg::OnQueryDragIcon()
 
 void CGMVideoSynPlayWithSDL2_V2Dlg::SetInfo(const char *info)
 {
-	CString i;
-	m_cInfo.GetWindowText(i);
+	SYSTEMTIME st;
+	GetLocalTime(&st);
+	TRACE("[%02d:%02d:%02d.%03d]\t", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+	TRACE(info);
+	TRACE("\n");
+	//CString i;
+	//m_cInfo.GetWindowText(i);
 
-	if (!i.IsEmpty())
-		i += _T("\r\n");
-	
-	USES_CONVERSION;
-	i.Append(A2T(info));
+	//if (!i.IsEmpty())
+	//	i += _T("\r\n");
+	//
+	//USES_CONVERSION;
+	//i.Append(A2T(info));
 
-	m_cInfo.SetWindowText(i);
+	//m_cInfo.SetWindowText(i);
 }
 
 
@@ -369,6 +374,8 @@ void CGMVideoSynPlayWithSDL2_V2Dlg::OnBnClickedBtnDemuxing()
 			sprintf_s(msg, 4096, "声道：%d 声道", audio_codec_ctx_->channels);
 			SetInfo(msg);
 			sprintf_s(msg, 4096, "音频流时长：%f fps", framerate_);
+			SetInfo(msg);
+			sprintf_s(msg, 4096, "每秒播放的音频字节数：%d bytes", audio_codec_ctx_->sample_rate * audio_codec_ctx_->channels * audio_codec_ctx_->sample_fmt);
 			SetInfo(msg);
 			SetInfo("\r\n");
 		}
@@ -619,7 +626,8 @@ DWORD WINAPI CGMVideoSynPlayWithSDL2_V2Dlg::VideoDecodeThread(LPVOID lpParam)
 		played_duration += frame->pkt_duration;
 		int64_t ms_pts = av_rescale_q(played_duration, dlg->video_stream_->time_base, ms_base);
 		dlg->total_played_duration_ = (ms_pts);
-		TRACE("已播放时长：%d ms\n", dlg->total_played_duration_);
+		//sprintf(msg, "已播放时长：%d ms", dlg->total_played_duration_);
+		//dlg->SetInfo(msg);
 		dlg->m_cProgressTime.SetPos(dlg->total_played_duration_);
 
 
@@ -681,18 +689,6 @@ DWORD WINAPI CGMVideoSynPlayWithSDL2_V2Dlg::AudioDecodeThread(LPVOID lpParam)
 			break;
 		}
 
-		// 如果有视频流的时候这里需要匹配一下视频帧的pts
-		while (true)
-		{
-			if (dlg->current_video_pts_ <= av_rescale_q(pkt->pts, dlg->video_stream_->time_base, ms_base))
-			{
-				TRACE("音频帧的时间戳超越视频帧了，等待一下...\n");
-				SDL_Delay(1);
-			}
-			else
-				break;
-		}
-
 		// 解码
 		int got_sound = 0;
 		errCode = avcodec_decode_audio4(dlg->audio_codec_ctx_, frame, &got_sound, pkt);
@@ -704,6 +700,37 @@ DWORD WINAPI CGMVideoSynPlayWithSDL2_V2Dlg::AudioDecodeThread(LPVOID lpParam)
 
 		if (got_sound == 0)
 			continue;
+
+		// 如果有视频流的时候这里需要匹配一下视频帧的pts
+		while (true)
+		{
+			__int64 current_audio_pts = av_rescale_q(pkt->pts, dlg->audio_stream_->time_base, ms_base);
+			//__int64 current_audio_pts = av_rescale_q(pkt->pts, dlg->video_stream_->time_base, ms_base);
+			//sprintf(msg, "当前视频时间戳为：%I64d ms，当前音频时间戳为：%I64d ms", dlg->current_video_pts_, current_audio_pts);
+			//dlg->SetInfo(msg);
+
+			if (dlg->current_video_pts_ < current_audio_pts)
+			{
+				// 这里表面上看，是音频帧比视频帧要快了，接下来要比较一下播放时长
+				// 如果这个音频帧的播放时长比视频帧播放时长要慢，那么我们可能就不应该等待了
+				// 除非音频帧播放完比视频帧播放完还要快，则要稍稍等一下
+				// 视频每一帧显示时间是根据帧率来计算的也就是固定长度
+				// =========这个效果勉强可以=========
+				__int64 video_duration = 1000 / dlg->framerate_;
+				__int64 current_audio_duration = av_rescale_q(pkt->duration, dlg->audio_stream_->time_base, ms_base);
+
+				if ((dlg->current_video_pts_ + video_duration) < (current_audio_pts + current_audio_duration))
+					SDL_Delay(1);
+			}
+			else
+				break;
+		}
+
+		// 这里得到音频时钟，也就是音频的播放时长
+		double audio_duration = av_q2d(dlg->audio_stream_->time_base) * pkt->pts;
+		//sprintf(msg, "音频的播放时长：%f", audio_duration);
+		//dlg->SetInfo(msg);
+
 
 		// 执行转换
 		swr_convert(dlg->audio_convert_context_, &dlg->audio_output_buffer_, MAX_AUDIO_FRAME_SIZE, (const unsigned char **)frame->data, frame->nb_samples);
@@ -770,7 +797,7 @@ DWORD WINAPI CGMVideoSynPlayWithSDL2_V2Dlg::WorkingThread(LPVOID lpParam)
 	// 到这里为止，应该是所有数据包都读取完毕了
 	//avformat_close_input(&dlg->input_fmtctx_);
 	//dlg->input_fmtctx_ = NULL;
-	TRACE("视音频流分离线程工作完成...\n");
+	dlg->SetInfo("视音频流分离线程工作完成...");
 
 	return 0;
 }
@@ -778,6 +805,7 @@ DWORD WINAPI CGMVideoSynPlayWithSDL2_V2Dlg::WorkingThread(LPVOID lpParam)
 void SDLCALL CGMVideoSynPlayWithSDL2_V2Dlg::audio_fill_callback(void *userdata, Uint8 * stream, int len)
 {
 	CGMVideoSynPlayWithSDL2_V2Dlg *dlg = (CGMVideoSynPlayWithSDL2_V2Dlg*)userdata;
+	char msg[4096] = {0};
 
 	if (len <= 0)
 		return ;
@@ -789,6 +817,8 @@ void SDLCALL CGMVideoSynPlayWithSDL2_V2Dlg::audio_fill_callback(void *userdata, 
 
 	len = (len > audio_len ? audio_len : len);
 
+	//sprintf(msg, "MixAudio len:%d", len);
+	//dlg->SetInfo(msg);
 	SDL_MixAudio(stream, audio_pos, len, dlg->volume_val_);
 	audio_pos += len;
 	audio_len -= len;

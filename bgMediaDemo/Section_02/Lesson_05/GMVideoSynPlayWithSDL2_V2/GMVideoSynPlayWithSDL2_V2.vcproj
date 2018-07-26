@@ -264,6 +264,58 @@
 		<Filter
 			Name="V1"
 			>
+			<File
+				RelativePath=".\GxxGmAudio.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GxxGmAudio.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GxxGmMediaInfo.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GxxGmMediaInfo.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GxxGmMediaPlayer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GxxGmMediaPlayer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GxxGmQueue.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GxxGmQueue.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GxxGmVideo.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GxxGmVideo.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="V2"
+			>
+			<File
+				RelativePath=".\GxxGmMediaPlayer_V2.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GxxGmMediaPlayer_V2.h"
+				>
+			</File>
 		</Filter>
 		<File
 			RelativePath=".\ReadMe.txt"

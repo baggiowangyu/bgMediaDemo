@@ -12,6 +12,7 @@ extern "C" {
 
 #include <iostream>
 #include <tchar.h>
+#include <atlstr.h>
 
 #include "PacketQueue.h"
 #include "Audio.h"
@@ -21,14 +22,17 @@ using namespace std;
 
 bool quit = false;
 
-int _tmain(int argv, const TCHAR* argc[])
+int _tmain(int argc, const TCHAR* argv[])
 {
 	av_register_all();
 
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER);
 
-	char* filename = "C:\\Users\\WANGY\\Desktop\\video\\小哥哥你为什么没有女朋友.mp4";
+	//char* filename = "C:\\Users\\WANGY\\Desktop\\video\\小哥哥你为什么没有女朋友.mp4";
 	//char* filename = "F:\\test.rmvb";
+	char filename[4096] = {0};
+	USES_CONVERSION;
+	strcpy(filename, T2A(argv[1]));
 	MediaState media(filename);
 
 	if (media.openInput())

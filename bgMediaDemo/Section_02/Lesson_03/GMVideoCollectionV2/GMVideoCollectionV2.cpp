@@ -179,16 +179,120 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	errCode = avformat_find_stream_info(pFormatCtx, NULL);
 
+	int video_index = -1;
+	AVStream *video_stream = NULL;
+	AVCodec *video_codec = NULL;
+	AVCodecContext *video_codec_ctx = NULL;
+
 	int streams = pFormatCtx->nb_streams;
 	for (int index = 0; index < streams; ++index)
 	{
 		if (pFormatCtx->streams[index]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
 		{
 			// 视频流信息
+			video_index = index;
+			video_stream = pFormatCtx->streams[index];
+
+			video_codec = avcodec_find_decoder(video_stream->codec->codec_id);
+			if (video_codec == NULL)
+			{
+				printf("没有找到解码器\n");
+				break;
+			}
+
+			video_codec_ctx = avcodec_alloc_context3(video_codec);
+			if (video_codec_ctx == NULL)
+			{
+				printf("申请解码器上下文失败！");
+				break;
+			}
+
+			errCode = avcodec_copy_context(video_codec_ctx, video_stream->codec);
+			if (errCode < 0)
+			{
+				printf("复制解码上下文失败！错误码：%d\n", errCode);
+				break;
+			}
+
+			errCode = avcodec_open2(video_codec_ctx, video_codec, NULL);
+			if (errCode < 0)
+			{
+				printf("打开解码器失败！错误码：%d\n", errCode);
+				break;
+			}
 		}
 		else if (pFormatCtx->streams[index]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
 		{
 			// 音频流信息
+		}
+	}
+
+	if (errCode < 0)
+	{
+		return errCode;
+	}
+
+	// 我们这里要强制转为H.264或者H.265编码或者MPEG-4
+	AVCodec *video_encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
+	if (video_encoder == NULL)
+	{
+		printf("未找到编码器\n");
+		return -1;
+	}
+
+	AVCodecContext *video_encode_ctx = avcodec_alloc_context3(video_encoder);
+	if (video_encode_ctx == NULL)
+	{
+		printf("申请编码上下文失败！\n");
+		return -2;
+	}
+
+	// 补充其他元素
+	video_encode_ctx->codec_type = AVMEDIA_TYPE_VIDEO;		// 媒体类型
+	//video_encode_ctx->bit_rate = 600000;					// 视频码率
+	video_encode_ctx->compression_level = 5;				// 压缩等级
+	video_encode_ctx->width = video_codec_ctx->width;		// 视频宽
+	video_encode_ctx->height = video_codec_ctx->height;		// 视频高
+	video_encode_ctx->pix_fmt = video_codec_ctx->pix_fmt;	// 图像格式
+	//video_encode_ctx->time_base = av_inv_q(video_codec_ctx->framerate);
+
+	// 接下来读取
+	while (true)
+	{
+		AVPacket pkt;
+		errCode = av_read_frame(pFormatCtx, &pkt);
+		if (errCode < 0)
+			break;
+
+		if (pkt.stream_index == video_index)
+		{
+			// 是视频流，先解码，再编码
+			AVFrame *frm = av_frame_alloc();
+			int got = 0;
+			errCode = avcodec_decode_video2(video_codec_ctx, frm, &got, &pkt);
+			if (!got)
+			{
+				printf("没有解码出图片");
+				av_frame_free(&frm);
+				continue;
+			}
+		
+			// 重新编码
+			int new_got = 0;
+			AVPacket new_pkt;
+			new_pkt.data = NULL;
+			new_pkt.size = 0;
+			av_init_packet(&new_pkt);
+			errCode = avcodec_encode_video2(video_encode_ctx, &new_pkt, frm, &new_got);
+			if (!new_got)
+			{
+				printf("编码失败！");
+				av_frame_free(&frm);
+				continue;
+			}
+
+			// 如果要输出到文件，需要设置流ID
+			// 需要设置时间基
 		}
 	}
 

@@ -33,6 +33,8 @@ typedef struct _StreamContext
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	char errmsg[4096] = {0};
+
 	if (argc < 3)
 	{
 		std::cout<<"usage: GMVideoFormatConvert.exe <input_media> <output_media>"<<std::endl;
@@ -54,8 +56,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	//////////////////////////////////////////////////////////////////////////
 	//
-	// 打开输入文件
-	// 这段代码片段需要拿到视音频解码上下文（上下文已经打开了解码器）
+	// 输入视频解复用
 	//
 	//////////////////////////////////////////////////////////////////////////
 	AVFormatContext *input_format_context = NULL;
@@ -73,259 +74,314 @@ int _tmain(int argc, _TCHAR* argv[])
 		return errCode;
 	}
 
-// 	StreamContext *stream_ctx = av_mallocz_array(input_format_context->nb_streams, sizeof(*stream_ctx));
-// 	if (!stream_ctx)
-// 	{
-// 		return -1;
-// 	}
-
 	// 用于输出的解码器上下文
 	int input_video_stream_index = -1;
 	int input_audio_stream_index = -1;
+	AVStream *input_video_stream = NULL;
+	AVStream *input_audio_stream = NULL;
+	AVCodec *input_video_codec = NULL;
+	AVCodec *input_audio_codec = NULL;
 	AVCodecContext *input_video_codec_context = NULL;
 	AVCodecContext *input_audio_codec_context = NULL;
 
 	for (int index = 0; index < input_format_context->nb_streams; ++index)
 	{
-		AVStream *stream = input_format_context->streams[index];
-		AVCodec *decoder = avcodec_find_decoder(stream->codecpar->codec_id);
-		if (!decoder)
-			return AVERROR_DECODER_NOT_FOUND;
-
-		AVCodecContext *decode_codec_context = avcodec_alloc_context3(decoder);
-		if (!decode_codec_context)
-			return AVERROR(ENOMEM);
-
-		errCode = avcodec_parameters_to_context(decode_codec_context, stream->codecpar);
-		if (errCode < 0)
-			return errCode;
-
-		if (decode_codec_context->codec_type == AVMEDIA_TYPE_VIDEO || decode_codec_context->codec_type == AVMEDIA_TYPE_AUDIO)
+		if (input_format_context->streams[index]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
 		{
-			// 如果是视频流，需要猜测帧率
-			if (decode_codec_context->codec_type == AVMEDIA_TYPE_VIDEO)
-				decode_codec_context->framerate = av_guess_frame_rate(input_format_context, stream, NULL);
-			
-			// 打开解码器
-			errCode = avcodec_open2(decode_codec_context, decoder, NULL);
-			if (errCode < 0)
-				return errCode;
-		}
-
-		if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-		{
+			// 流ID，后面复用时会用到
 			input_video_stream_index = index;
-			input_video_codec_context = decode_codec_context;
+			//input_video_stream = input_format_context->streams[index];
+
+			input_video_codec = avcodec_find_decoder(input_format_context->streams[index]->codec->codec_id);
+			if (input_video_codec == NULL)
+			{
+				printf("没有找到视频解码器");
+				return -1;
+			}
+
+			input_video_codec_context = avcodec_alloc_context3(input_video_codec);
+			if (input_video_codec_context == NULL)
+			{
+				printf("申请");
+				return -2;
+			}
+
+			errCode = avcodec_copy_context(input_video_codec_context, input_format_context->streams[index]->codec);
+			if (errCode < 0)
+			{
+				av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+				return errCode;
+			}
+
+			errCode = avcodec_open2(input_video_codec_context, input_video_codec, NULL);
+			if (errCode < 0)
+			{
+				av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+				return errCode;
+			}
 		}
-		else if (stream->codec->codec_type == AVMEDIA_TYPE_AUDIO)
+		else if (input_format_context->streams[index]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
 		{
+			// 流ID，后面复用时会用到
 			input_audio_stream_index = index;
-			input_audio_codec_context = decode_codec_context;
+			//input_audio_stream = input_format_context->streams[index];
+
+			input_audio_codec = avcodec_find_decoder(input_format_context->streams[index]->codec->codec_id);
+			if (input_audio_codec == NULL)
+			{
+				printf("没有找到视频解码器");
+				return -1;
+			}
+
+			input_audio_codec_context = avcodec_alloc_context3(input_audio_codec);
+			if (input_audio_codec_context == NULL)
+			{
+				printf("申请");
+				return -2;
+			}
+
+			errCode = avcodec_copy_context(input_audio_codec_context, input_format_context->streams[index]->codec);
+			if (errCode < 0)
+			{
+				av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+				return errCode;
+			}
+
+			errCode = avcodec_open2(input_audio_codec_context, input_audio_codec, NULL);
+			if (errCode < 0)
+			{
+				av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+				return errCode;
+			}
 		}
 	}
 
-	av_dump_format(input_format_context, 0, T2A(input_media), 0);
-
 	//////////////////////////////////////////////////////////////////////////
 	//
-	// 打开输出文件
-	// 此代码片段需要拿到输出格式上下文，视音频编码上下文（编码器已经被打开）
+	// 准备输出
 	//
 	//////////////////////////////////////////////////////////////////////////
-	AVCodecContext *encode_video_codec_context = NULL;
-	AVCodecContext *encode_audio_codec_context = NULL;
 
 	AVFormatContext *output_format_context = NULL;
-	avformat_alloc_output_context2(&output_format_context, NULL, NULL, T2A(output_media));
-
-	if (!output_format_context)
-		return AVERROR_UNKNOWN;
-
-	for (int index = 0; index < input_format_context->nb_streams; ++index)
+	errCode = avformat_alloc_output_context2(&output_format_context, NULL, NULL, T2A(output_media));
+	if (errCode < 0)
 	{
-		AVStream *out_stream = avformat_new_stream(output_format_context, NULL);
-		if (!out_stream)
-			return AVERROR_UNKNOWN;
-
-		AVStream *in_stream = input_format_context->streams[index];
-		AVCodecContext *decode_codec_context = NULL;
-		AVCodecID codec_id = AV_CODEC_ID_NONE;
-
-		if (index == input_audio_stream_index)
-		{
-			decode_codec_context = input_audio_codec_context;
-			codec_id = output_format_context->oformat->audio_codec;
-		}
-		else if (index == input_video_stream_index)
-		{
-			decode_codec_context = input_video_codec_context;
-			codec_id = output_format_context->oformat->video_codec;
-		}
-
-		AVCodec *encoder = avcodec_find_encoder(codec_id);
-		if (!encoder)
-			return AVERROR_INVALIDDATA;
-
-		AVCodecContext *encode_codec_context = avcodec_alloc_context3(encoder);
-		if (!encode_codec_context)
-			return AVERROR(ENOMEM);
-
-		out_stream->codec = encode_codec_context;
-
-		if (index == input_video_stream_index)
-		{
-			// 视频编码
-			encode_codec_context->height = decode_codec_context->height;
-			encode_codec_context->width = decode_codec_context->width;
-
-			encode_codec_context->sample_aspect_ratio = decode_codec_context->sample_aspect_ratio;
-
-			if (encoder->pix_fmts)
-				encode_codec_context->pix_fmt = encoder->pix_fmts[0];
-			else
-				encode_codec_context->pix_fmt = decode_codec_context->pix_fmt;
-
-			encode_codec_context->time_base = av_inv_q(decode_codec_context->framerate);
-		}
-		else if (index == input_audio_stream_index)
-		{
-			// 音频编码
-			encode_codec_context->sample_rate = decode_codec_context->sample_rate;
-			encode_codec_context->channel_layout = decode_codec_context->channel_layout;
-			encode_codec_context->channels = av_get_channel_layout_nb_channels(encode_codec_context->channel_layout);
-
-			encode_codec_context->sample_fmt = encoder->sample_fmts[0];
-			encode_codec_context->time_base.num = 1;
-			encode_codec_context->time_base.den = encode_codec_context->sample_rate;
-		}
-
-		errCode = avcodec_open2(decode_codec_context, encoder, NULL);
-		if (errCode < 0)
-		{
-			return errCode;
-		}
-
-		errCode = avcodec_parameters_from_context(out_stream->codecpar, encode_codec_context);
-		if (errCode < 0)
-		{
-			return errCode;
-		}
-
-		if (output_format_context->oformat->flags & AVFMT_GLOBALHEADER)
-			encode_codec_context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-
-		out_stream->time_base = encode_codec_context->time_base;
-
-		if (out_stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-			encode_video_codec_context = encode_codec_context;
-		else if (out_stream->codec->codec_type == AVMEDIA_TYPE_AUDIO)
-			encode_audio_codec_context = encode_codec_context;
+		av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+		return errCode;
 	}
-
-	av_dump_format(output_format_context, 0, T2A(output_media), 1);
-
-	//////////////////////////////////////////////////////////////////////////
-	//
-	// 打开输出文件
-	//
-	//////////////////////////////////////////////////////////////////////////
 
 	if (!(output_format_context->oformat->flags & AVFMT_NOFILE))
 	{
 		errCode = avio_open(&output_format_context->pb, T2A(output_media), AVIO_FLAG_WRITE);
 		if (errCode < 0)
+		{
+			printf("Could not open output file '%s'", T2A(output_media));
 			return errCode;
+		}
 	}
 
-	// 初始化复用器，写入文件头
-	errCode = avformat_write_header(output_format_context, NULL);
-	if (errCode < 0)
+	//////////////////////////////////////////////////////////////////////////
+	//
+	//  准备编码上下文
+	//
+	//////////////////////////////////////////////////////////////////////////
+
+	int output_video_stream_index = -1;
+	int output_audio_stream_index = -1;
+	AVStream *output_video_stream = NULL;
+	AVStream *output_audio_stream = NULL;
+	AVCodec *output_video_codec = NULL;
+	AVCodec *output_audio_codec = NULL;
+	AVCodecContext *output_video_codec_context = NULL;
+	AVCodecContext *output_audio_codec_context = NULL;
+
+	for (int index = 0; index < input_format_context->nb_streams; ++index)
 	{
+		if (index == input_video_stream_index)
+		{
+			output_video_stream_index = index;
+
+			output_video_codec = avcodec_find_encoder(output_format_context->oformat->video_codec);
+			if (output_video_codec == NULL)
+			{
+				printf("没有找到视频编码器");
+				return -1;
+			}
+
+			// 创建输出视频流
+			output_video_stream = avformat_new_stream(output_format_context, output_video_codec);
+			if (output_video_stream == NULL)
+			{
+				printf("申请输出视频流失败！");
+				return -3;
+			}
+
+			output_video_codec_context = avcodec_alloc_context3(output_video_codec);
+			if (output_video_codec_context == NULL)
+			{
+				printf("申请输出视频编码上下文失败！");
+				return -2;
+			}
+
+			output_video_codec_context->height = input_video_codec_context->height;
+			output_video_codec_context->width = input_video_codec_context->width;
+			output_video_codec_context->sample_aspect_ratio = input_video_codec_context->sample_aspect_ratio;
+			/* take first format from list of supported formats */
+			if (output_video_codec->pix_fmts)
+				output_video_codec_context->pix_fmt = output_video_codec->pix_fmts[0];
+			else
+				output_video_codec_context->pix_fmt = input_video_codec_context->pix_fmt;
+			/* video time_base can be set to whatever is handy and supported by encoder */
+			output_video_codec_context->time_base = av_inv_q(input_video_codec_context->framerate);
+			//output_video_codec_context->framerate = 30;
+
+			//AVDictionary *param = 0;
+			//if (output_format_context->oformat->video_codec == AV_CODEC_ID_H264)
+			//{
+			//	av_opt_set(output_video_codec_context->priv_data, "preset", "slow", 0);
+			//	av_opt_set(output_video_codec_context->priv_data, "tune", "zerolatency", 0);
+			//}
+			//if (output_format_context->oformat->video_codec == AV_CODEC_ID_H265)
+			//{
+			//	av_opt_set(output_video_codec_context->priv_data, "preset", "ultrafast", 0);
+			//	av_opt_set(output_video_codec_context->priv_data, "tune", "zero-latency", 0);
+			//}
+
+			// 打开视频编码器
+			errCode = avcodec_open2(output_video_codec_context, output_video_codec, NULL);
+			if (errCode < 0)
+			{
+				av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+				return errCode;
+			}
+
+			//
+			errCode = avcodec_parameters_from_context(output_video_stream->codecpar, output_video_codec_context);
+			if (errCode < 0)
+			{
+				av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+				return errCode;
+			}
+
+			if (output_format_context->oformat->flags & AVFMT_GLOBALHEADER)
+				output_video_codec_context->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
+
+			output_video_stream->time_base = output_video_codec_context->time_base;
+			errCode = avcodec_copy_context(output_video_stream->codec, output_video_codec_context);
+			if (errCode < 0)
+			{
+				av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+				return errCode;
+			}
+		}
+		else if (index == input_audio_stream_index)
+		{
+			// 创建输出视频流
+		}
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	//
+	// 写文件头
+	//
+	//////////////////////////////////////////////////////////////////////////
+
+	/* init muxer, write output file header */
+	errCode = avformat_write_header(output_format_context, NULL);
+	if (errCode < 0) {
+		av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
 		return errCode;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	//
-	// 读取每一个编码包
+	// 读取帧，并进行转码
 	//
 	//////////////////////////////////////////////////////////////////////////
-	AVPacket av_packet;
 
 	while (true)
 	{
-		errCode = av_read_frame(input_format_context, &av_packet);
+		AVPacket orignal_pkt;
+		errCode = av_read_frame(input_format_context, &orignal_pkt);
 		if (errCode < 0)
+		{
+			av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+			printf("av_read_frame. err : %s\n", errmsg);
 			break;
+		}
 
-		AVFrame *av_frame = av_frame_alloc();
-		int got_data = 0;
+		if (orignal_pkt.stream_index == input_video_stream_index)
+		{
+			// 视频帧，解码
+			AVFrame *orignal_frame = av_frame_alloc();
+			int got_pic = 0;
+			errCode = avcodec_decode_video2(input_video_codec_context, orignal_frame, &got_pic, &orignal_pkt);
+			if (errCode < 0)
+			{
+				av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+				av_frame_free(&orignal_frame);
+				break;
+			}
 
-		// 先解码数据
-		if (input_video_stream_index == av_packet.stream_index)
-			errCode = avcodec_decode_video2(input_video_codec_context, av_frame, &got_data, &av_packet);
-		else if (input_audio_stream_index == av_packet.stream_index)
-			errCode = avcodec_decode_audio4(input_audio_codec_context, av_frame, &got_data, &av_packet);
+			if (!got_pic)
+			{
+				av_frame_free(&orignal_frame);
+				continue;
+			}
 
-		if (errCode < 0)
-			return errCode;
+			// 拿到解码后的原始图片了，重新编码
+			AVPacket encoded_pkt;
+			av_init_packet(&encoded_pkt);
+			encoded_pkt.data = NULL;
+			encoded_pkt.size = 0;
 
-		if (got_data < 1)
-			continue;
+			encoded_pkt.pts = orignal_pkt.pts;
+			encoded_pkt.dts = orignal_pkt.dts;
+			encoded_pkt.duration = orignal_pkt.duration;
+			encoded_pkt.pos = orignal_pkt.pos;
 
-		// 重新编码组包
-		AVPacket encode_packet;
-		encode_packet.data = NULL;
-		encode_packet.size = 0;
-		av_init_packet(&encode_packet);
-		av_new_packet(&encode_packet, 4096);
+			int got_pkt = 0;
+			errCode = avcodec_encode_video2(output_video_codec_context, &encoded_pkt, orignal_frame, &got_pkt);
+			if (errCode < 0)
+			{
+				av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+				av_frame_free(&orignal_frame);
+				break;
+			}
 
-		if (input_video_stream_index == av_packet.stream_index)
-			errCode = avcodec_encode_video2(encode_video_codec_context, &encode_packet, av_frame, &got_data);
-		else if (input_audio_stream_index == av_packet.stream_index)
-			errCode = avcodec_encode_audio2(encode_audio_codec_context, &encode_packet, av_frame, &got_data);
+			if (!got_pkt)
+			{
+				av_frame_free(&orignal_frame);
+				continue;
+			}
 
-		if (errCode < 0)
-			return errCode;
+			// 编码完成，调整一波时间戳？
 
-		if (got_data < 1)
-			return -6;
+			// 写入文件
+			errCode = av_write_frame(output_format_context, &encoded_pkt);
+			if (errCode < 0)
+			{
+				av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+				av_frame_free(&orignal_frame);
+				break;
+			}
 
-		encode_packet.stream_index = av_packet.stream_index;
-		
-		if (input_video_stream_index == av_packet.stream_index)
-			av_packet_rescale_ts(&encode_packet, encode_video_codec_context->time_base, output_format_context->streams[input_video_stream_index]->time_base);
-		else if (input_audio_stream_index == av_packet.stream_index)
-			av_packet_rescale_ts(&encode_packet, encode_audio_codec_context->time_base, output_format_context->streams[input_audio_stream_index]->time_base);
-
-		// 写入包
-		errCode = av_interleaved_write_frame(output_format_context, &encode_packet);
-		if (errCode < 0)
-			return errCode;
+			av_free_packet(&orignal_pkt);
+			av_free_packet(&encoded_pkt);
+		}
 	}
 
-	// 刷掉上下文中剩余的包,分别刷视频和音频
-	//for (int index = 0; index < input_format_context->nb_streams; ++index)
-	//{
-	//	AVCodecContext *encode_codec_context = NULL;
+	//////////////////////////////////////////////////////////////////////////
+	//
+	// 写文件尾部
+	//
+	//////////////////////////////////////////////////////////////////////////
 
-	//	if (index == input_video_stream_index)
-	//		encode_codec_context = encode_video_codec_context;
-	//	else if (index == input_audio_stream_index)
-	//		encode_codec_context = encode_audio_codec_context;
-
-	//	if (!(encode_codec_context->codec->capabilities & AV_CODEC_CAP_DELAY))
-	//		continue;
-
-	//	while (true)
-	//	{
-	//		errCode = 
-	//	}
-	//}
-
-	// 写入文件尾
-	av_write_trailer(output_format_context);
-
-	// 清理资源
+	errCode = av_write_trailer(output_format_context);
+	if (errCode < 0) {
+		av_make_error_string(errmsg, AV_ERROR_MAX_STRING_SIZE, errCode);
+		return errCode;
+	}
 
 	return 0;
 }

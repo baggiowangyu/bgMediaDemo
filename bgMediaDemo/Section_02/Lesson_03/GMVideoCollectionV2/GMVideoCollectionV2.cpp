@@ -31,6 +31,8 @@ extern "C" {
 #include <vector>  
 #include <dshow.h>  
 
+#define _CAP_AUDIO_
+
 #ifndef MACRO_GROUP_DEVICENAME  
 #define MACRO_GROUP_DEVICENAME  
 
@@ -169,7 +171,15 @@ int _tmain(int argc, _TCHAR* argv[])
 	char err[AV_ERROR_MAX_STRING_SIZE] = {0};
 	char *strerr = NULL;
 	USES_CONVERSION;
-	sprintf(buffer, "video=%s", W2A(video_devices[0].FriendlyName));  
+	//sprintf(buffer, "video=%s", W2A(video_devices[0].FriendlyName));
+#ifdef _CAP_AUDIO_
+	//sprintf(buffer, "audio=%s", W2A(audio_devices[0].FriendlyName));
+	// utf-8зЊТы
+	char utf8name[4096] = {0};
+	WideCharToMultiByte(CP_UTF8, 0, audio_devices[0].FriendlyName, -1, utf8name, 4096, NULL, NULL);
+	sprintf(buffer, "audio=%s", utf8name);
+#endif
+	
 	int errCode = avformat_open_input(&pFormatCtx, buffer, iformat, NULL); 
 	if (errCode < 0)
 	{
